@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
-import {cooldown, Destination, fight, getCharacter, move, refreshCharacter, rest} from './api';
+import {cooldown, Destination, fight, getAllCharacters, getCharacter, move, refreshCharacter, rest} from './api';
 
 function JsonView({ data }: { data: unknown }) {
   const text = useMemo(() => JSON.stringify(data, null, 2), [data]);
@@ -13,6 +13,29 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [cooldownText, setCooldownText] = useState<string>('');
   const [dest, setDest] = useState<Destination>({ x: 0, y: 0 });
+  const [charNames, setCharNames] = useState<string[]>([]);
+  const [namesLoading, setNamesLoading] = useState<boolean>(false);
+  const [namesError, setNamesError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadNames() {
+      setNamesLoading(true);
+      setNamesError(null);
+      try {
+        const list = await getAllCharacters();
+        // list is expected to be an array of character entities with a 'name' field
+        const names = Array.isArray(list) ? list.map((c: any) => c?.name).filter((n: any) => typeof n === 'string') : [];
+        if (!cancelled) setCharNames(names);
+      } catch (e: any) {
+        if (!cancelled) setNamesError(e?.message || String(e));
+      } finally {
+        if (!cancelled) setNamesLoading(false);
+      }
+    }
+    loadNames().then();
+    return () => { cancelled = true; };
+  }, []);
 
   const load = useCallback(async () => {
     if (!name) return;
@@ -128,14 +151,23 @@ export default function App() {
               <h3 className="panel-title">Controls</h3>
 
               <div className="stack">
-                <label className="input-label" htmlFor="charName">Character name</label>
-                <input
+                <label className="input-label" htmlFor="charName">Character</label>
+                <select
                   id="charName"
                   className="input"
-                  placeholder="e.g. MyHero123"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                />
+                  disabled={namesLoading}
+                >
+                  <option value="">{namesLoading ? 'Loading characters...' : 'Select a character'}</option>
+                  {charNames.map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
+                {namesError && <div className="helper" style={{ color: '#ef476f' }}>Failed to load character list: {namesError}</div>}
+                {!namesLoading && charNames.length === 0 && !namesError && (
+                  <div className="helper">No characters found. Create one in the game, then click Refresh to try again.</div>
+                )}
               </div>
 
               <div className="row wrap">
@@ -172,7 +204,7 @@ export default function App() {
               </div>
 
               {error && <div className="helper" style={{ color: '#ef476f' }}>Error: {error}</div>}
-              {!name && <div className="helper">Enter a character name to begin.</div>}
+              {!name && <div className="helper">Select a character to begin.</div>}
             </div>
           </section>
 

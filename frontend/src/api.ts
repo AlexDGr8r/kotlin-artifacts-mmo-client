@@ -6,6 +6,23 @@ export async function getCharacter(name: string) {
   return res.json();
 }
 
+let _allCharactersPromise: Promise<any> | null = null;
+
+export async function getAllCharacters(forceReload: boolean = false) {
+  if (!_allCharactersPromise || forceReload) {
+    _allCharactersPromise = (async () => {
+      const res = await fetch(`/character/all`);
+      if (!res.ok) throw new Error(`Failed to fetch characters: ${res.status}`);
+      return res.json();
+    })().catch(err => {
+      // Reset cache on failure so a future call can retry
+      _allCharactersPromise = null;
+      throw err;
+    });
+  }
+  return _allCharactersPromise;
+}
+
 export async function refreshCharacter(name: string) {
   const res = await fetch(`/character/${encodeURIComponent(name)}/refresh`);
   if (!res.ok) throw new Error(`Failed to refresh character: ${res.status}`);
