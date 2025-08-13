@@ -1,0 +1,30 @@
+@name = AlexTheGr8r
+
+###
+// @no-log
+PUT http://localhost:8080/character/{{name}}/move
+Content-Type: application/json
+
+{
+  "x": 0,
+  "y": 1
+}
+
+###
+// @no-log
+GET http://localhost:8080/character/{{name}}/fight?rest=true
+
+###
+// @no-log
+GET http://localhost:8080/character/{{name}}/rest
+
+###
+// @no-log
+GET http://localhost:8080/character/{{name}}/refresh
+
+###
+// @no-log
+GET http://localhost:8080/character/{{name}}/cooldown
+
+
+
