@@ -41,6 +41,29 @@ function formatRelativeTime(target: Date | string | number, nowInput?: Date): st
     return past ? `${value} ${unit}${plural} ago` : `in ${value} ${unit}${plural}`;
 }
 
+// Build item image URL from code
+const itemImageUrl = (code: string) => `https://client.artifactsmmo.com/images/items/${code}.png`;
+
+// Shared <img> onError handler: retry lowercase once, then hide
+function handleItemImgError(e: React.SyntheticEvent<HTMLImageElement>) {
+    const img = e.currentTarget;
+    // use alt to store original code
+    const original = img.alt || '';
+    if (!img.dataset.lcTried && original) {
+        img.dataset.lcTried = '1';
+        img.src = itemImageUrl(original.toLowerCase());
+    } else {
+        img.style.display = 'none';
+    }
+}
+
+// On successful load, ensure previously hidden or flagged images are reset
+function handleItemImgLoad(e: React.SyntheticEvent<HTMLImageElement>) {
+    const img = e.currentTarget;
+    if (img.style.display === 'none') img.style.display = '';
+    if (img.dataset.lcTried) delete img.dataset.lcTried;
+}
+
 function JsonView({data}: { data: unknown }) {
     const text = useMemo(() => JSON.stringify(data, null, 2), [data]);
     return <pre className="json">{text}</pre>;
@@ -170,7 +193,6 @@ export default function App() {
     const [slots, setSlots] = useState<string[]>([]);
     const [slotsLoading, setSlotsLoading] = useState<boolean>(false);
     const [slotsError, setSlotsError] = useState<string | null>(null);
-    const [selectedSlot, setSelectedSlot] = useState<string>('');
 
     // Inventory state
     const [inventory, setInventory] = useState<Record<number, InventorySlot>>({});
@@ -355,20 +377,6 @@ export default function App() {
         }
     }, [name, dest, load])
 
-    const doUnequip = useCallback(async () => {
-        if (!name || !selectedSlot) return;
-        setLoading(true);
-        setError(null);
-        try {
-            const data = await unequip(name, { slot: selectedSlot });
-            setCharacter(data ?? null);
-        } catch (e: any) {
-            setError(e.message || String(e));
-        } finally {
-            setLoading(false);
-        }
-    }, [name, selectedSlot, load]);
-
     useEffect(() => {
         setCharacter(null);
         setCooldownText('');
@@ -495,28 +503,6 @@ export default function App() {
                                     <button className="btn" onClick={doGatherAt} disabled={!isReady}>Gather</button>
                                 </div>
                             </div>
-
-                            <div className="stack">
-                                <label className="input-label">Unequip</label>
-                                <div className="row wrap fill">
-                                    <select
-                                        className="input"
-                                        value={selectedSlot}
-                                        onChange={(e) => setSelectedSlot(e.target.value)}
-                                        disabled={slotsLoading}
-                                    >
-                                        <option value="">{slotsLoading ? 'Loading slots...' : 'Select a slot'}</option>
-                                        {slots.map((s) => (
-                                            <option key={s} value={s}>{s}</option>
-                                        ))}
-                                    </select>
-                                    <button className="btn" onClick={doUnequip} disabled={!isReady || !selectedSlot}>Unequip</button>
-                                </div>
-                                {slotsError && <div className="helper" style={{color: '#ef476f'}}>Failed to load slots: {slotsError}</div>}
-                                {!slotsLoading && slots.length === 0 && !slotsError && (
-                                    <div className="helper">No slots available.</div>
-                                )}
-                            </div>
                         </div>
                     </section>
 
@@ -538,6 +524,76 @@ export default function App() {
                             )}
                         </div>
                     </section>
+
+                    {/* Equipment panel */}
+                    {character && (() => {
+                        // Build entries for any top-level *_slot fields with a non-empty value
+                        const entries: Array<{ key: string; label: string; apiSlot: string; code: string } > = [];
+                        const c: any = character;
+                        if (c && typeof c === 'object') {
+                            for (const k of Object.keys(c)) {
+                                if (!k.toLowerCase().endsWith('_slot')) continue;
+                                const val = (c as any)[k];
+                                if (val === null || val === undefined || val === '' || (typeof val === 'object' && !val.code && !val.name)) continue;
+                                const apiSlot = k.replace(/_slot$/i, '').toLowerCase();
+                                const pretty = apiSlot.charAt(0) + apiSlot.slice(1).toLowerCase();
+                                const label = pretty.replace(/_/g, ' ');
+                                const code = typeof val === 'object' ? (val.code ?? val.name ?? String(val)) : String(val);
+                                entries.push({ key: k, label, apiSlot, code });
+                            }
+                        }
+                        if (entries.length === 0) return null;
+                        return (
+                            <section className="card full-bleed">
+                                <div className="card-header">
+                                    <h3 className="card-title">Equipment</h3>
+                                </div>
+                                <div className="card-body">
+                                    <div className="inventory-grid">
+                                        {entries.sort((a,b)=> a.label.localeCompare(b.label)).map((e) => (
+                                            <div key={e.key} className="inv-slot">
+                                                <div className="inv-slot-header">
+                                                    <span className="badge">{e.label}</span>
+                                                </div>
+                                                <div className="inv-slot-body">
+                                                    <img
+                                                        key={e.code}
+                                                        className="item-img"
+                                                        src={itemImageUrl(e.code)}
+                                                        alt={e.code}
+                                                        loading="lazy"
+                                                        onLoad={handleItemImgLoad}
+                                                        onError={handleItemImgError}
+                                                    />
+                                                    <div className="item-code" title={e.code}>{e.code}</div>
+                                                </div>
+                                                <div className="inv-slot-actions" style={{gap: 6}}>
+                                                    <button
+                                                        className="btn"
+                                                        onClick={async () => {
+                                                            if (!name) return;
+                                                            setLoading(true);
+                                                            setError(null);
+                                                            try {
+                                                                await unequip(name, { slot: e.apiSlot });
+                                                                await load(); // load() calls loadInventory too
+                                                            } catch (err: any) {
+                                                                setError(err?.message || String(err));
+                                                            } finally {
+                                                                setLoading(false);
+                                                            }
+                                                        }}
+                                                        disabled={loading || !name}
+                                                        title={`Unequip ${e.label}`}
+                                                    >Unequip</button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </section>
+                        );
+                    })()}
 
                     {/* Inventory panel */}
                     <section className="card full-bleed">
@@ -561,6 +617,15 @@ export default function App() {
                                             <span className="badge">Qty {slot.quantity}</span>
                                         </div>
                                         <div className="inv-slot-body">
+                                            <img
+                                                key={slot.code}
+                                                className="item-img"
+                                                src={itemImageUrl(slot.code)}
+                                                alt={slot.code}
+                                                loading="lazy"
+                                                onLoad={handleItemImgLoad}
+                                                onError={handleItemImgError}
+                                            />
                                             <div className="item-code" title={slot.code}>{slot.code}</div>
                                         </div>
                                         <div className="inv-slot-actions" style={{gap: 6}}>
@@ -570,7 +635,7 @@ export default function App() {
                                                 onChange={(e) => setEquipTargetByInvSlot(prev => ({...prev, [Number(slotNum)]: e.target.value}))}
                                                 disabled={slotsLoading}
                                             >
-                                                <option value="">Select equip slot</option>
+                                                <option value="">Select Slot</option>
                                                 {slots.map(s => (
                                                     <option key={s} value={s}>{s}</option>
                                                 ))}
