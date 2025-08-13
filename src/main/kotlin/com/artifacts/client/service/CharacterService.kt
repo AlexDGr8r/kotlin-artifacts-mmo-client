@@ -26,6 +26,13 @@ class CharacterService(
 
     fun get(name: String): CharacterEntity? = characterRepo.findByIdOrNull(name)
 
+    fun getAll(): List<CharacterEntity> {
+        val characters = artifactsApi.getAllCharacters().data
+            .map { it.toEntity() }
+        characters.forEach(this::persist)
+        return characters
+    }
+
     fun move(name: String, destination: DestinationSchema, entity: CharacterEntity? = null) {
         val character = entity ?: getCharacterFromDB(name)
         if (character?.isAtDestination(destination) == true) {

@@ -33,6 +33,11 @@ class ArtifactsApiService(
         .retrieve()
         .logAndReturnBody<CharacterRestResponseSchema>()
 
+    fun getAllCharacters() = artifactsApiRestClient.get()
+        .uri("/my/characters")
+        .retrieve()
+        .logAndReturnBody<MyCharactersListSchema>()
+
     private inline fun <reified T : Any> RestClient.ResponseSpec.logAndReturnBody(): T {
         val response = toEntity<T>()
         log.info { "Response status code: ${response.statusCode}" }

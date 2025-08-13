@@ -1,6 +1,5 @@
 package com.artifacts.client.controller
 
-import com.artifacts.client.domain.CharacterEntity
 import com.artifacts.client.openapi.models.DestinationSchema
 import com.artifacts.client.service.CharacterService
 import org.springframework.web.bind.annotation.*
@@ -12,7 +11,10 @@ class CharacterController(
 ) {
 
     @GetMapping("/{name}")
-    fun get(@PathVariable name: String): CharacterEntity? = characterService.get(name)
+    fun get(@PathVariable name: String) = characterService.get(name)
+
+    @GetMapping("/all")
+    fun getAll() = characterService.getAll()
 
     @PutMapping("/{name}/move")
     fun move(@RequestBody destination: DestinationSchema, @PathVariable name: String) =

@@ -201,7 +201,7 @@ export default function App() {
       </main>
 
       <footer className="footer">
-        Dev server proxies API calls to http://localhost:8080. Run backend first. Mobile-friendly layout enabled.
+        Dev server proxies API calls to http://localhost:8080. Run backend first.
       </footer>
     </div>
   );
