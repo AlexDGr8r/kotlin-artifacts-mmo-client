@@ -1,6 +1,7 @@
 package com.artifacts.client.service
 
 import com.artifacts.client.domain.CharacterEntity
+import com.artifacts.client.domain.InventorySlotEntity
 import com.artifacts.client.extensions.TaskSchedulerExtensions.afterCooldown
 import com.artifacts.client.mappers.CharacterMapper.toEntity
 import com.artifacts.client.mappers.InventorySlotMapper.toEntity
@@ -37,6 +38,15 @@ class CharacterService(
     fun getAll(): List<CharacterEntity> {
         val characters = artifactsApi.getAllCharacters().data
         return characters.map(this::persist)
+    }
+
+    fun getInventory(name: String): Map<Int, InventorySlotEntity> {
+        var slots = inventorySlotRepo.findAllByCharacter(name)
+        if (slots.isEmpty()) {
+            forceRefresh(name)
+            slots = inventorySlotRepo.findAllByCharacter(name)
+        }
+        return slots.associateBy { it.slot }
     }
 
     fun move(name: String, destination: DestinationSchema, entity: CharacterEntity? = null): CharacterEntity {

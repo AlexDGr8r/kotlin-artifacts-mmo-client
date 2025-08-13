@@ -55,4 +55,7 @@ class CharacterController(
     fun unequip(@PathVariable name: String, @RequestBody schema: UnequipSchema) =
         characterService.unequip(name, schema)
 
+    @GetMapping("/{name}/inventory")
+    fun inventory(@PathVariable name: String) = characterService.getInventory(name)
+
 }
