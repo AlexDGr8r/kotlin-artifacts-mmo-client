@@ -50,12 +50,6 @@ export async function move(name: string, destination: Destination) {
     return res.json();
 }
 
-export async function cooldown(name: string) {
-    const res = await fetch(`/character/${encodeURIComponent(name)}/cooldown`);
-    if (!res.ok) throw new Error(`Failed to get cooldown: ${res.status}`);
-    return res.text();
-}
-
 export async function gather(name: string) {
     const res = await fetch(`/character/${encodeURIComponent(name)}/gather`);
     if (!res.ok) throw new Error(`Failed to gather: ${res.status}`);

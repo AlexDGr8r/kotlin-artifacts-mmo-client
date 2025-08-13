@@ -1,6 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {
-    cooldown,
     Destination,
     equip,
     fight,
@@ -61,20 +60,6 @@ function CharacterDetails({ data }: { data: any }) {
         return () => clearInterval(id);
     }, [data?.cooldown_expiration]);
 
-    const cooldownRelative = useMemo(() => {
-        if (!data?.cooldown_expiration) return null;
-        return formatRelativeTime(data.cooldown_expiration);
-    }, [data?.cooldown_expiration, tick]);
-
-    // Equipment summary if object-like
-    const equipmentEntries: Array<[string, any]> = useMemo(() => {
-        const eq = data?.equipment;
-        if (eq && typeof eq === 'object' && !Array.isArray(eq)) {
-            return Object.entries(eq);
-        }
-        return [];
-    }, [data]);
-
     // XP bars: overall xp/max_xp and any *_xp with corresponding *_max_xp
     const xpBars: Array<{ label: string; value: number; max: number }> = useMemo(() => {
         const bars: Array<{ label: string; value: number; max: number }> = [];
@@ -112,25 +97,31 @@ function CharacterDetails({ data }: { data: any }) {
                 {data?.level !== undefined && (
                     <div className="kv"><div className="k">Level</div><div className="v">{val(data.level)}</div></div>
                 )}
-                {(data?.hp !== undefined || data?.max_hp !== undefined) && (
-                    <div className="kv"><div className="k">HP</div><div className="v">{val(data.hp)}/{val(data.max_hp)}</div></div>
-                )}
                 {data?.gold !== undefined && (
                     <div className="kv"><div className="k">Gold</div><div className="v">{val(data.gold)}</div></div>
-                )}
-                {(data?.x !== undefined || data?.y !== undefined) && (
-                    <div className="kv"><div className="k">Position</div><div className="v">{val(data.x)},{val(data.y)}</div></div>
                 )}
                 {data?.profession !== undefined && (
                     <div className="kv"><div className="k">Profession</div><div className="v">{val(data.profession)}</div></div>
                 )}
-                {data?.cooldown_expiration !== undefined && (
-                    <div className="kv" title={String(data.cooldown_expiration)}>
-                        <div className="k">Cooldown</div>
-                        <div className="v">{cooldownRelative ?? val(data.cooldown_expiration)}</div>
-                    </div>
-                )}
             </div>
+
+            {/* Health bar */}
+            {(Number.isFinite(Number(data?.hp)) && Number.isFinite(Number(data?.max_hp)) && Number(data?.max_hp) > 0) && (
+                <div className="stack">
+                    <div className="section-title">Health</div>
+                    {(() => {
+                        const hp = Number(data.hp);
+                        const max = Number(data.max_hp);
+                        const pct = Math.max(0, Math.min(100, (hp / max) * 100));
+                        return (
+                            <div className="progress danger" title={`${hp} / ${max}`}>
+                                <div className="progress-fill" style={{ width: `${pct}%` }} />
+                                <div className="progress-text">{hp} / {max}</div>
+                            </div>
+                        );
+                    })()}
+                </div>
+            )}
 
             {xpBars.length > 0 && (
                 <div className="stack">
@@ -150,20 +141,6 @@ function CharacterDetails({ data }: { data: any }) {
                                 </div>
                             );
                         })}
-                    </div>
-                </div>
-            )}
-
-            {equipmentEntries.length > 0 && (
-                <div className="stack">
-                    <div className="section-title">Equipment</div>
-                    <div className="chips">
-                        {equipmentEntries.map(([slot, item]) => (
-                            <span key={slot} className="chip" title={typeof item === 'object' ? JSON.stringify(item) : String(item)}>
-                                <span className="chip-k">{slot}</span>
-                                <span className="chip-v">{typeof item === 'object' ? (item?.code ?? item?.name ?? 'item') : String(item)}</span>
-                            </span>
-                        ))}
                     </div>
                 </div>
             )}
@@ -350,17 +327,6 @@ export default function App() {
         }
     }, [name, dest, load]);
 
-    const checkCooldown = useCallback(async () => {
-        if (!name) return;
-        setError(null);
-        try {
-            const text = await cooldown(name);
-            setCooldownText(text);
-        } catch (e: any) {
-            setError(e.message || String(e));
-        }
-    }, [name]);
-
     const doGather = useCallback(async () => {
         if (!name) return;
         setLoading(true);
@@ -445,13 +411,13 @@ export default function App() {
                     </div>
                     <div style={{marginLeft: 'auto'}}>
                         {headerCooldownRelative ? (
-                            <span className={"badge " + (headerCooldownFuture ? 'badge-accent' : '')} title={headerCooldownDate ? headerCooldownDate.toString() : 'Cooldown status'}>
-                                {headerCooldownRelative}
+                            <span className={"badge " + (headerCooldownFuture ? 'badge-accent' : 'badge-success')} title={headerCooldownDate ? headerCooldownDate.toString() : 'Cooldown status'}>
+                                Cooldown {headerCooldownRelative}
                             </span>
                         ) : cooldownText ? (
                             <span className="badge badge-accent" title="Cooldown status">{cooldownText}</span>
                         ) : (
-                            <span className="badge">Ready</span>
+                            <span className="badge badge-success">Ready</span>
                         )}
                     </div>
                 </div>
@@ -462,7 +428,12 @@ export default function App() {
                     {/* Controls panel */}
                     <section className="panel">
                         <div className="panel-inner stack">
-                            <h3 className="panel-title">Controls</h3>
+                            <div className="row wrap">
+                                <h3 className="panel-title">Controls</h3>
+                                {loading &&
+                                    <span className="row" style={{gap: 6}}><span className="loader"/> Loading...</span>}
+                            </div>
+
                             {error && <div className="helper" style={{color: '#ef476f'}}>Error: {error}</div>}
                             {!name && <div className="helper">Select a character to begin.</div>}
 
@@ -490,20 +461,15 @@ export default function App() {
                                 )}
                             </div>
 
-                            <div className="row wrap">
+                            <div className="row wrap fill">
                                 <button className="btn btn-accent" onClick={load} disabled={!isReady}>Load</button>
-                                <button className="btn btn-primary" onClick={doRefresh} disabled={!isReady}>Refresh
-                                </button>
-                                <button className="btn" onClick={checkCooldown} disabled={!isReady}>Check Cooldown
-                                </button>
+                                <button className="btn btn-primary" onClick={doRefresh} disabled={!isReady}>Refresh</button>
                             </div>
 
-                            <div className="row wrap">
+                            <div className="row wrap fill">
                                 <button className="btn" onClick={doRest} disabled={!isReady}>Rest</button>
                                 <button className="btn btn-danger" onClick={doFight} disabled={!isReady}>Fight</button>
                                 <button className="btn" onClick={doGather} disabled={!isReady}>Gather</button>
-                                {loading &&
-                                    <span className="row" style={{gap: 6}}><span className="loader"/> Loading...</span>}
                             </div>
 
                             <div className="stack">
@@ -524,7 +490,7 @@ export default function App() {
                                         placeholder="Y"
                                     />
                                 </div>
-                                <div className="row wrap">
+                                <div className="row wrap fill">
                                     <button className="btn" onClick={doMove} disabled={!isReady}>Move</button>
                                     <button className="btn" onClick={doGatherAt} disabled={!isReady}>Gather</button>
                                 </div>
@@ -532,7 +498,7 @@ export default function App() {
 
                             <div className="stack">
                                 <label className="input-label">Unequip</label>
-                                <div className="row wrap">
+                                <div className="row wrap fill">
                                     <select
                                         className="input"
                                         value={selectedSlot}
@@ -560,10 +526,7 @@ export default function App() {
                             <h3 className="card-title">Character</h3>
                             {character && (
                                 <div className="row wrap" style={{gap: 8}}>
-                                    <span className="badge">Lvl {character.level ?? '-'} </span>
-                                    <span className="badge">HP {character.hp ?? '-'}/{character.max_hp ?? '-'}</span>
-                                    <span className="badge">Gold {character.gold ?? '-'}</span>
-                                    <span className="badge">Pos {character.x ?? '-'},{character.y ?? '-'}</span>
+                                    <span className="badge">At {character.x ?? '-'},{character.y ?? '-'}</span>
                                 </div>
                             )}
                         </div>
