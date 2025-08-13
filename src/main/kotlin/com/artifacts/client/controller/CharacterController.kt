@@ -34,4 +34,11 @@ class CharacterController(
     fun isOnCooldown(@PathVariable name: String) =
         "$name on cooldown: ${characterService.isOnCooldown(name)}"
 
+    @GetMapping("/{name}/gather")
+    fun gather(@PathVariable name: String) = characterService.gather(name)
+
+    @PutMapping("/{name}/gather")
+    fun gatherAt(@RequestBody destination: DestinationSchema, @PathVariable name: String) =
+        characterService.gatherAt(name, destination)
+
 }

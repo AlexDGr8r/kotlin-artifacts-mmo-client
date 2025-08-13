@@ -19,9 +19,9 @@ class CharacterService(
 ) {
     private val log = KotlinLogging.logger {}
 
-    fun forceRefresh(name: String) {
+    fun forceRefresh(name: String): CharacterEntity {
         val character = artifactsApi.getCharacter(name).data.toEntity()
-        persist(character)
+        return persist(character)
     }
 
     fun get(name: String): CharacterEntity? = characterRepo.findByIdOrNull(name)
@@ -33,15 +33,15 @@ class CharacterService(
         return characters
     }
 
-    fun move(name: String, destination: DestinationSchema, entity: CharacterEntity? = null) {
+    fun move(name: String, destination: DestinationSchema, entity: CharacterEntity? = null): CharacterEntity {
         val character = entity ?: getCharacterFromDB(name)
         if (character?.isAtDestination(destination) == true) {
             log.info { "$name is already at ${destination.x}, ${destination.y}" }
-            return
+            return character
         }
         val response = artifactsApi.move(name, destination)
         log.info { "$name moved to ${destination.x}, ${destination.y}" }
-        persist(response.data.character.toEntity(), character)
+        return persist(response.data.character.toEntity(), character)
     }
 
     fun offsetMove(name: String, offset: DestinationSchema) {
@@ -60,10 +60,22 @@ class CharacterService(
         }
     }
 
-    fun rest(name: String) {
+    fun rest(name: String): CharacterEntity {
         val response = artifactsApi.rest(name).data
         log.info { "$name had a rest and restored ${response.hpRestored} HP. New HP: ${response.character.hp} / ${response.character.maxHp}" }
-        persist(response.character.toEntity())
+        return persist(response.character.toEntity())
+    }
+
+    fun gather(name: String): CharacterEntity {
+        val response = artifactsApi.gathering(name).data
+        log.info { "$name gathered ${response.details.items.size} items gaining ${response.details.xp} XP" }
+        return persist(response.character.toEntity())
+    }
+
+    fun gatherAt(name: String, destination: DestinationSchema) {
+        scheduler.afterCooldown(move(name, destination)) {
+            gather(name)
+        }
     }
 
     fun isOnCooldown(name: String, entity: CharacterEntity? = null): Boolean {
@@ -74,11 +86,12 @@ class CharacterService(
         return false
     }
 
-    private fun persist(character: CharacterEntity, existing: CharacterEntity? = null) {
+    private fun persist(character: CharacterEntity, existing: CharacterEntity? = null): CharacterEntity {
         val existingChar = existing ?: characterRepo.findByIdOrNull(character.name)
         val updatedChar = character.copy(version = existingChar?.version)
-        characterRepo.save(updatedChar)
+        val persistedChar = characterRepo.save(updatedChar)
         log.info { "Character persisted: ${updatedChar.name}" }
+        return persistedChar
     }
 
     private fun getCharacterFromDB(name: String) = characterRepo.findByIdOrNull(name)

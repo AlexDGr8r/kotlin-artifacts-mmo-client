@@ -38,6 +38,11 @@ class ArtifactsApiService(
         .retrieve()
         .logAndReturnBody<MyCharactersListSchema>()
 
+    fun gathering(charName: String) = artifactsApiRestClient.post()
+        .uri("/my/{name}/action/gathering", charName)
+        .retrieve()
+        .logAndReturnBody<SkillResponseSchema>()
+
     private inline fun <reified T : Any> RestClient.ResponseSpec.logAndReturnBody(): T {
         val response = toEntity<T>()
         log.info { "Response status code: ${response.statusCode}" }
