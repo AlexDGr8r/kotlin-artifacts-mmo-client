@@ -2,21 +2,181 @@ import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {
     cooldown,
     Destination,
+    equip,
     fight,
     gather,
     gatherAt,
     getAllCharacters,
     getCharacter,
+    getInventory,
     getSlots,
+    InventorySlot,
     move,
     refreshCharacter,
     rest,
     unequip
 } from './api';
 
+// Simple relative time formatter: returns phrases like "in 30 seconds" or "30 seconds ago"
+function formatRelativeTime(target: Date | string | number, nowInput?: Date): string {
+    const now = nowInput ?? new Date();
+    const t = target instanceof Date ? target : new Date(target);
+    if (isNaN(t.getTime())) return '-';
+    let diffMs = t.getTime() - now.getTime();
+    const past = diffMs < 0;
+    diffMs = Math.abs(diffMs);
+
+    const sec = Math.round(diffMs / 1000);
+    const min = Math.round(sec / 60);
+    const hr = Math.round(min / 60);
+    const day = Math.round(hr / 24);
+
+    let unit: string;
+    let value: number;
+    if (sec < 60) { unit = 'second'; value = sec; }
+    else if (min < 60) { unit = 'minute'; value = min; }
+    else if (hr < 24) { unit = 'hour'; value = hr; }
+    else { unit = 'day'; value = day; }
+
+    const plural = value === 1 ? '' : 's';
+    return past ? `${value} ${unit}${plural} ago` : `in ${value} ${unit}${plural}`;
+}
+
 function JsonView({data}: { data: unknown }) {
     const text = useMemo(() => JSON.stringify(data, null, 2), [data]);
     return <pre className="json">{text}</pre>;
+}
+
+function CharacterDetails({ data }: { data: any }) {
+    const [showRaw, setShowRaw] = useState(false);
+
+    // Best-effort safe access helpers
+    const val = (v: any) => (v === null || v === undefined) ? '-' : v;
+
+    // Local ticking for live relative cooldown display
+    const [tick, setTick] = useState(0);
+    useEffect(() => {
+        if (!data?.cooldown_expiration) return;
+        const id = setInterval(() => setTick(t => (t + 1) % 1_000_000), 1000);
+        return () => clearInterval(id);
+    }, [data?.cooldown_expiration]);
+
+    const cooldownRelative = useMemo(() => {
+        if (!data?.cooldown_expiration) return null;
+        return formatRelativeTime(data.cooldown_expiration);
+    }, [data?.cooldown_expiration, tick]);
+
+    // Equipment summary if object-like
+    const equipmentEntries: Array<[string, any]> = useMemo(() => {
+        const eq = data?.equipment;
+        if (eq && typeof eq === 'object' && !Array.isArray(eq)) {
+            return Object.entries(eq);
+        }
+        return [];
+    }, [data]);
+
+    // XP bars: overall xp/max_xp and any *_xp with corresponding *_max_xp
+    const xpBars: Array<{ label: string; value: number; max: number }> = useMemo(() => {
+        const bars: Array<{ label: string; value: number; max: number }> = [];
+        const overallX = Number((data as any)?.xp);
+        const overallMax = Number((data as any)?.max_xp);
+        if (Number.isFinite(overallX) && Number.isFinite(overallMax) && overallMax > 0) {
+            bars.push({ label: 'XP', value: overallX, max: overallMax });
+        }
+        if (data && typeof data === 'object') {
+            for (const k of Object.keys(data)) {
+                if (k === 'xp') continue;
+                if (k.endsWith('_xp')) {
+                    const prefix = k.slice(0, -3);
+                    const maxKey = `${prefix}_max_xp`;
+                    const cur = Number((data as any)[k]);
+                    const max = Number((data as any)[maxKey]);
+                    if (Number.isFinite(cur) && Number.isFinite(max) && max > 0) {
+                        const nice = prefix
+                            ? (prefix.charAt(0).toUpperCase() + prefix.slice(1)).replace(/_/g, ' ') + ' XP'
+                            : 'XP';
+                        bars.push({ label: nice, value: cur, max });
+                    }
+                }
+            }
+        }
+        return bars;
+    }, [data]);
+
+    return (
+        <div className="stack">
+            <div className="kv-grid">
+                {data?.name !== undefined && (
+                    <div className="kv"><div className="k">Name</div><div className="v">{val(data.name)}</div></div>
+                )}
+                {data?.level !== undefined && (
+                    <div className="kv"><div className="k">Level</div><div className="v">{val(data.level)}</div></div>
+                )}
+                {(data?.hp !== undefined || data?.max_hp !== undefined) && (
+                    <div className="kv"><div className="k">HP</div><div className="v">{val(data.hp)}/{val(data.max_hp)}</div></div>
+                )}
+                {data?.gold !== undefined && (
+                    <div className="kv"><div className="k">Gold</div><div className="v">{val(data.gold)}</div></div>
+                )}
+                {(data?.x !== undefined || data?.y !== undefined) && (
+                    <div className="kv"><div className="k">Position</div><div className="v">{val(data.x)},{val(data.y)}</div></div>
+                )}
+                {data?.profession !== undefined && (
+                    <div className="kv"><div className="k">Profession</div><div className="v">{val(data.profession)}</div></div>
+                )}
+                {data?.cooldown_expiration !== undefined && (
+                    <div className="kv" title={String(data.cooldown_expiration)}>
+                        <div className="k">Cooldown</div>
+                        <div className="v">{cooldownRelative ?? val(data.cooldown_expiration)}</div>
+                    </div>
+                )}
+            </div>
+
+            {xpBars.length > 0 && (
+                <div className="stack">
+                    <div className="section-title">Experience</div>
+                    <div className="stack">
+                        {xpBars.map((b, i) => {
+                            const pct = Math.max(0, Math.min(100, b.max ? (b.value / b.max) * 100 : 0));
+                            return (
+                                <div key={b.label + i} className="stack">
+                                    <div className="row" style={{ justifyContent: 'space-between' }}>
+                                        <div className="helper">{b.label}</div>
+                                    </div>
+                                    <div className="progress" title={`${b.value} / ${b.max}`}>
+                                        <div className="progress-fill" style={{ width: `${pct}%` }} />
+                                        <div className="progress-text">{b.value} / {b.max}</div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {equipmentEntries.length > 0 && (
+                <div className="stack">
+                    <div className="section-title">Equipment</div>
+                    <div className="chips">
+                        {equipmentEntries.map(([slot, item]) => (
+                            <span key={slot} className="chip" title={typeof item === 'object' ? JSON.stringify(item) : String(item)}>
+                                <span className="chip-k">{slot}</span>
+                                <span className="chip-v">{typeof item === 'object' ? (item?.code ?? item?.name ?? 'item') : String(item)}</span>
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            <div className="row wrap">
+                <button className="btn" onClick={() => setShowRaw(s => !s)}>
+                    {showRaw ? 'Hide Raw JSON' : 'Show Raw JSON'}
+                </button>
+            </div>
+
+            {showRaw && <JsonView data={data} />}
+        </div>
+    );
 }
 
 export default function App() {
@@ -34,6 +194,33 @@ export default function App() {
     const [slotsLoading, setSlotsLoading] = useState<boolean>(false);
     const [slotsError, setSlotsError] = useState<string | null>(null);
     const [selectedSlot, setSelectedSlot] = useState<string>('');
+
+    // Inventory state
+    const [inventory, setInventory] = useState<Record<number, InventorySlot>>({});
+    const [inventoryLoading, setInventoryLoading] = useState<boolean>(false);
+    const [inventoryError, setInventoryError] = useState<string | null>(null);
+
+    // Live header cooldown relative time tick
+    const [timeTick, setTimeTick] = useState(0);
+    useEffect(() => {
+        if (!character?.cooldown_expiration) return;
+        const id = setInterval(() => setTimeTick(t => (t + 1) % 1_000_000), 1000);
+        return () => clearInterval(id);
+    }, [character?.cooldown_expiration]);
+
+    const headerCooldownDate = useMemo(() => {
+        return character?.cooldown_expiration ? new Date(character.cooldown_expiration) : null;
+    }, [character?.cooldown_expiration]);
+
+    const headerCooldownRelative = useMemo(() => {
+        if (!headerCooldownDate || isNaN(headerCooldownDate.getTime())) return null;
+        return formatRelativeTime(headerCooldownDate);
+    }, [headerCooldownDate, timeTick]);
+
+    const headerCooldownFuture = useMemo(() => {
+        if (!headerCooldownDate || isNaN(headerCooldownDate.getTime())) return false;
+        return headerCooldownDate.getTime() > Date.now();
+    }, [headerCooldownDate, timeTick]);
 
     useEffect(() => {
         let cancelled = false;
@@ -78,6 +265,20 @@ export default function App() {
         return () => { cancelled = true; };
     }, []);
 
+    const loadInventory = useCallback(async () => {
+        if (!name) return;
+        setInventoryLoading(true);
+        setInventoryError(null);
+        try {
+            const data = await getInventory(name);
+            setInventory(data || {});
+        } catch (e: any) {
+            setInventoryError(e?.message || String(e));
+        } finally {
+            setInventoryLoading(false);
+        }
+    }, [name]);
+
     const load = useCallback(async () => {
         if (!name) return;
         setLoading(true);
@@ -85,12 +286,13 @@ export default function App() {
         try {
             const data = await getCharacter(name);
             setCharacter(data ?? null);
+            await loadInventory();
         } catch (e: any) {
             setError(e.message || String(e));
         } finally {
             setLoading(false);
         }
-    }, [name]);
+    }, [name, loadInventory]);
 
     const doRefresh = useCallback(async () => {
         if (!name) return;
@@ -204,7 +406,32 @@ export default function App() {
     useEffect(() => {
         setCharacter(null);
         setCooldownText('');
+        setInventory({});
+        setInventoryError(null);
     }, [name]);
+
+    const [equipTargetByInvSlot, setEquipTargetByInvSlot] = useState<Record<number, string>>({});
+
+    const doEquipFromSlot = useCallback(async (invSlotNum: number) => {
+        if (!name) return;
+        const invSlot = inventory[invSlotNum];
+        if (!invSlot || !invSlot.code) return; // ignore empty slots safety
+        const targetSlot = equipTargetByInvSlot[invSlotNum];
+        if (!targetSlot) {
+            setError('Select an equipment slot first.');
+            return;
+        }
+        setLoading(true);
+        setError(null);
+        try {
+            await equip(name, { slot: targetSlot, code: invSlot.code });
+            await Promise.all([load(), loadInventory()]);
+        } catch (e: any) {
+            setError(e?.message || String(e));
+        } finally {
+            setLoading(false);
+        }
+    }, [name, inventory, equipTargetByInvSlot, load, loadInventory]);
 
     const isReady = !!name && !loading;
 
@@ -217,7 +444,11 @@ export default function App() {
                         <div className="brand-title">Artifacts MMO Client</div>
                     </div>
                     <div style={{marginLeft: 'auto'}}>
-                        {cooldownText ? (
+                        {headerCooldownRelative ? (
+                            <span className={"badge " + (headerCooldownFuture ? 'badge-accent' : '')} title={headerCooldownDate ? headerCooldownDate.toString() : 'Cooldown status'}>
+                                {headerCooldownRelative}
+                            </span>
+                        ) : cooldownText ? (
                             <span className="badge badge-accent" title="Cooldown status">{cooldownText}</span>
                         ) : (
                             <span className="badge">Ready</span>
@@ -338,10 +569,59 @@ export default function App() {
                         </div>
                         <div className="card-body">
                             {character ? (
-                                <JsonView data={character}/>
+                                <CharacterDetails data={character} />
                             ) : (
                                 <div className="helper">No character loaded.</div>
                             )}
+                        </div>
+                    </section>
+
+                    {/* Inventory panel */}
+                    <section className="card full-bleed">
+                        <div className="card-header">
+                            <h3 className="card-title">Inventory</h3>
+                            <div className="row wrap">
+                                <button className="btn" onClick={loadInventory} disabled={!isReady || inventoryLoading}>Reload</button>
+                                {inventoryLoading && <span className="row" style={{gap: 6}}><span className="loader"/> Loading...</span>}
+                            </div>
+                        </div>
+                        <div className="card-body">
+                            {inventoryError && <div className="helper" style={{color: '#ef476f'}}>Failed to load inventory: {inventoryError}</div>}
+                            {!inventoryLoading && Object.keys(inventory).length === 0 && (
+                                <div className="helper">Inventory is empty.</div>
+                            )}
+                            <div className="inventory-grid">
+                                {Object.entries(inventory).sort((a,b)=> Number(a[0]) - Number(b[0])).map(([slotNum, slot]) => (
+                                    <div key={slotNum} className="inv-slot">
+                                        <div className="inv-slot-header">
+                                            <span className="badge">Slot {slotNum}</span>
+                                            <span className="badge">Qty {slot.quantity}</span>
+                                        </div>
+                                        <div className="inv-slot-body">
+                                            <div className="item-code" title={slot.code}>{slot.code}</div>
+                                        </div>
+                                        <div className="inv-slot-actions" style={{gap: 6}}>
+                                            <select
+                                                className="input"
+                                                value={equipTargetByInvSlot[Number(slotNum)] || ''}
+                                                onChange={(e) => setEquipTargetByInvSlot(prev => ({...prev, [Number(slotNum)]: e.target.value}))}
+                                                disabled={slotsLoading}
+                                            >
+                                                <option value="">Select equip slot</option>
+                                                {slots.map(s => (
+                                                    <option key={s} value={s}>{s}</option>
+                                                ))}
+                                            </select>
+                                            <button
+                                                className="btn btn-primary"
+                                                onClick={() => doEquipFromSlot(Number(slotNum))}
+                                                disabled={loading || slotsLoading || !equipTargetByInvSlot[Number(slotNum)] || !slot.code}
+                                                title="Equip this item"
+                                            >Equip</button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </section>
                 </div>

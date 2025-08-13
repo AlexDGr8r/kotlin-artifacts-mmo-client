@@ -100,3 +100,11 @@ export async function getSlots(): Promise<string[]> {
     if (!res.ok) throw new Error(`Failed to fetch slots: ${res.status}`);
     return res.json();
 }
+
+export type InventorySlot = { character?: string; slot: number; code: string; quantity: number; id?: number };
+
+export async function getInventory(name: string): Promise<Record<number, InventorySlot>> {
+    const res = await fetch(`/character/${encodeURIComponent(name)}/inventory`);
+    if (!res.ok) throw new Error(`Failed to fetch inventory: ${res.status}`);
+    return res.json();
+}
