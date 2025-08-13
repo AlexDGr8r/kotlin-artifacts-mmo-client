@@ -51,8 +51,8 @@ class CharacterController(
     fun equip(@PathVariable name: String, @RequestBody schema: EquipSchema) =
         characterService.equip(name, schema)
 
-    @GetMapping("/{name}/unequip/{slot}")
-    fun unequip(@PathVariable name: String, @PathVariable slot: ItemSlot) =
-        characterService.unequip(name, UnequipSchema(slot))
+    @PostMapping("/{name}/unequip")
+    fun unequip(@PathVariable name: String, @RequestBody schema: UnequipSchema) =
+        characterService.unequip(name, schema)
 
 }

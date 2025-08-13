@@ -7,9 +7,11 @@ import {
     gatherAt,
     getAllCharacters,
     getCharacter,
+    getSlots,
     move,
     refreshCharacter,
-    rest
+    rest,
+    unequip
 } from './api';
 
 function JsonView({data}: { data: unknown }) {
@@ -27,6 +29,11 @@ export default function App() {
     const [charNames, setCharNames] = useState<string[]>([]);
     const [namesLoading, setNamesLoading] = useState<boolean>(false);
     const [namesError, setNamesError] = useState<string | null>(null);
+    // Unequip controls state
+    const [slots, setSlots] = useState<string[]>([]);
+    const [slotsLoading, setSlotsLoading] = useState<boolean>(false);
+    const [slotsError, setSlotsError] = useState<string | null>(null);
+    const [selectedSlot, setSelectedSlot] = useState<string>('');
 
     useEffect(() => {
         let cancelled = false;
@@ -50,6 +57,25 @@ export default function App() {
         return () => {
             cancelled = true;
         };
+    }, []);
+
+    // Load available equipment slots once
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            setSlotsLoading(true);
+            setSlotsError(null);
+            try {
+                const list = await getSlots();
+                const options = Array.isArray(list) ? list.map((s: any) => String(s)).filter(Boolean) : [];
+                if (!cancelled) setSlots(options);
+            } catch (e: any) {
+                if (!cancelled) setSlotsError(e?.message || String(e));
+            } finally {
+                if (!cancelled) setSlotsLoading(false);
+            }
+        })();
+        return () => { cancelled = true; };
     }, []);
 
     const load = useCallback(async () => {
@@ -161,6 +187,20 @@ export default function App() {
         }
     }, [name, dest, load])
 
+    const doUnequip = useCallback(async () => {
+        if (!name || !selectedSlot) return;
+        setLoading(true);
+        setError(null);
+        try {
+            const data = await unequip(name, { slot: selectedSlot });
+            setCharacter(data ?? null);
+        } catch (e: any) {
+            setError(e.message || String(e));
+        } finally {
+            setLoading(false);
+        }
+    }, [name, selectedSlot, load]);
+
     useEffect(() => {
         setCharacter(null);
         setCooldownText('');
@@ -192,6 +232,8 @@ export default function App() {
                     <section className="panel">
                         <div className="panel-inner stack">
                             <h3 className="panel-title">Controls</h3>
+                            {error && <div className="helper" style={{color: '#ef476f'}}>Error: {error}</div>}
+                            {!name && <div className="helper">Select a character to begin.</div>}
 
                             <div className="stack">
                                 <label className="input-label" htmlFor="charName">Character</label>
@@ -257,8 +299,27 @@ export default function App() {
                                 </div>
                             </div>
 
-                            {error && <div className="helper" style={{color: '#ef476f'}}>Error: {error}</div>}
-                            {!name && <div className="helper">Select a character to begin.</div>}
+                            <div className="stack">
+                                <label className="input-label">Unequip</label>
+                                <div className="row wrap">
+                                    <select
+                                        className="input"
+                                        value={selectedSlot}
+                                        onChange={(e) => setSelectedSlot(e.target.value)}
+                                        disabled={slotsLoading}
+                                    >
+                                        <option value="">{slotsLoading ? 'Loading slots...' : 'Select a slot'}</option>
+                                        {slots.map((s) => (
+                                            <option key={s} value={s}>{s}</option>
+                                        ))}
+                                    </select>
+                                    <button className="btn" onClick={doUnequip} disabled={!isReady || !selectedSlot}>Unequip</button>
+                                </div>
+                                {slotsError && <div className="helper" style={{color: '#ef476f'}}>Failed to load slots: {slotsError}</div>}
+                                {!slotsLoading && slots.length === 0 && !slotsError && (
+                                    <div className="helper">No slots available.</div>
+                                )}
+                            </div>
                         </div>
                     </section>
 

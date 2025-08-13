@@ -94,3 +94,9 @@ export async function unequip(name: string, unequip: Unequip) {
     if (!res.ok) throw new Error(`Failed to unequip: ${res.status}`);
     return res.json();
 }
+
+export async function getSlots(): Promise<string[]> {
+    const res = await fetch(`/character/slots`);
+    if (!res.ok) throw new Error(`Failed to fetch slots: ${res.status}`);
+    return res.json();
+}
