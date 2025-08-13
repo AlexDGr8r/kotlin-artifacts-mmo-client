@@ -79,3 +79,12 @@ CREATE TABLE IF NOT EXISTS characters (
     cooldown_expiration TIMESTAMP WITH TIME ZONE NULL,
     version INT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS INVENTORY_SLOTS (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY NOT NULL,
+    character VARCHAR(255) NOT NULL,
+    slot INT NOT NULL,
+    code VARCHAR(255) NOT NULL,
+    quantity INT NOT NULL,
+    UNIQUE (character, slot)
+);
