@@ -24,6 +24,8 @@ class CharacterService(
         persist(character)
     }
 
+    fun get(name: String): CharacterEntity? = characterRepo.findByIdOrNull(name)
+
     fun move(name: String, destination: DestinationSchema, entity: CharacterEntity? = null) {
         val character = entity ?: getCharacterFromDB(name)
         if (character?.isAtDestination(destination) == true) {
