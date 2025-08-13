@@ -42,7 +42,7 @@ export async function rest(name: string) {
 
 export async function move(name: string, destination: Destination) {
     const res = await fetch(`/character/${encodeURIComponent(name)}/move`, {
-        method: 'PUT',
+        method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(destination),
     });
@@ -69,4 +69,28 @@ export async function gatherAt(name: string, destination: Destination) {
         body: JSON.stringify(destination),
     });
     if (!res.ok) throw new Error(`Failed to gather: ${res.status}`);
+}
+
+export type Equip = { slot: string; code: string };
+
+export async function equip(name: string, equip: Equip) {
+    const res = await fetch(`/character/${encodeURIComponent(name)}/equip`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(equip),
+    });
+    if (!res.ok) throw new Error(`Failed to equip: ${res.status}`);
+    return res.json();
+}
+
+export type Unequip = { slot: string };
+
+export async function unequip(name: string, unequip: Unequip) {
+    const res = await fetch(`/character/${encodeURIComponent(name)}/unequip`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(unequip),
+    });
+    if (!res.ok) throw new Error(`Failed to unequip: ${res.status}`);
+    return res.json();
 }

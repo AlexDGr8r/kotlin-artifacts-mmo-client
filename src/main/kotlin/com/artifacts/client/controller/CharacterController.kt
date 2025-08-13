@@ -1,6 +1,9 @@
 package com.artifacts.client.controller
 
 import com.artifacts.client.openapi.models.DestinationSchema
+import com.artifacts.client.openapi.models.EquipSchema
+import com.artifacts.client.openapi.models.ItemSlot
+import com.artifacts.client.openapi.models.UnequipSchema
 import com.artifacts.client.service.CharacterService
 import org.springframework.web.bind.annotation.*
 
@@ -16,7 +19,7 @@ class CharacterController(
     @GetMapping("/all")
     fun getAll() = characterService.getAll()
 
-    @PutMapping("/{name}/move")
+    @PostMapping("/{name}/move")
     fun move(@RequestBody destination: DestinationSchema, @PathVariable name: String) =
         characterService.move(name, destination)
 
@@ -40,5 +43,16 @@ class CharacterController(
     @PutMapping("/{name}/gather")
     fun gatherAt(@RequestBody destination: DestinationSchema, @PathVariable name: String) =
         characterService.gatherAt(name, destination)
+
+    @GetMapping("/slots")
+    fun slots() = ItemSlot.entries.toList()
+
+    @PostMapping("/{name}/equip")
+    fun equip(@PathVariable name: String, @RequestBody schema: EquipSchema) =
+        characterService.equip(name, schema)
+
+    @GetMapping("/{name}/unequip/{slot}")
+    fun unequip(@PathVariable name: String, @PathVariable slot: ItemSlot) =
+        characterService.unequip(name, UnequipSchema(slot))
 
 }

@@ -4,6 +4,8 @@ import com.artifacts.client.domain.CharacterEntity
 import com.artifacts.client.extensions.TaskSchedulerExtensions.afterCooldown
 import com.artifacts.client.mappers.CharacterMapper.toEntity
 import com.artifacts.client.openapi.models.DestinationSchema
+import com.artifacts.client.openapi.models.EquipSchema
+import com.artifacts.client.openapi.models.UnequipSchema
 import com.artifacts.client.repository.CharacterRepository
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.data.repository.findByIdOrNull
@@ -76,6 +78,18 @@ class CharacterService(
         scheduler.afterCooldown(move(name, destination)) {
             gather(name)
         }
+    }
+
+    fun equip(name: String, schema: EquipSchema): CharacterEntity {
+        val response = artifactsApi.equip(name, schema).data
+        log.info { "$name equipped ${response.item.name} in ${response.slot}" }
+        return persist(response.character.toEntity())
+    }
+
+    fun unequip(name: String, schema: UnequipSchema): CharacterEntity {
+        val response = artifactsApi.unequip(name, schema).data
+        log.info { "$name unequipped ${response.item.name} in ${response.slot}" }
+        return persist(response.character.toEntity())
     }
 
     fun isOnCooldown(name: String, entity: CharacterEntity? = null): Boolean {

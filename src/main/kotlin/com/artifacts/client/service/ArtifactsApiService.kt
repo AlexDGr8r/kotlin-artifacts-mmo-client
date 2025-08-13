@@ -43,6 +43,18 @@ class ArtifactsApiService(
         .retrieve()
         .logAndReturnBody<SkillResponseSchema>()
 
+    fun equip(charName: String, schema: EquipSchema) = artifactsApiRestClient.post()
+        .uri("/my/{name}/action/equip", charName)
+        .body(schema)
+        .retrieve()
+        .logAndReturnBody<EquipmentResponseSchema>()
+
+    fun unequip(charName: String, schema: UnequipSchema) = artifactsApiRestClient.post()
+        .uri("/my/{name}/action/unequip", charName)
+        .body(schema)
+        .retrieve()
+        .logAndReturnBody<EquipmentResponseSchema>()
+
     private inline fun <reified T : Any> RestClient.ResponseSpec.logAndReturnBody(): T {
         val response = toEntity<T>()
         log.info { "Response status code: ${response.statusCode}" }
