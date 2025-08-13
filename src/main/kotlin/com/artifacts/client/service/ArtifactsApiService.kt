@@ -1,11 +1,6 @@
 package com.artifacts.client.service
 
-import com.artifacts.client.openapi.models.CharacterFightDataSchema
-import com.artifacts.client.openapi.models.CharacterFightResponseSchema
-import com.artifacts.client.openapi.models.CharacterMovementResponseSchema
-import com.artifacts.client.openapi.models.CharacterResponseSchema
-import com.artifacts.client.openapi.models.CharacterRestResponseSchema
-import com.artifacts.client.openapi.models.DestinationSchema
+import com.artifacts.client.openapi.models.*
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestClient

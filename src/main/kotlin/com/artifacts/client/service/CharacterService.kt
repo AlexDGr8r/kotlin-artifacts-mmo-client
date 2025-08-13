@@ -1,9 +1,8 @@
 package com.artifacts.client.service
 
 import com.artifacts.client.domain.CharacterEntity
+import com.artifacts.client.extensions.TaskSchedulerExtensions.afterCooldown
 import com.artifacts.client.mappers.CharacterMapper.toEntity
-import com.artifacts.client.openapi.models.CharacterSchema
-import com.artifacts.client.openapi.models.CooldownSchema
 import com.artifacts.client.openapi.models.DestinationSchema
 import com.artifacts.client.repository.CharacterRepository
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -48,7 +47,7 @@ class CharacterService(
         val character = response.character
         if (restAfterFight && character.hp < character.maxHp) {
             log.info { "$name is below max HP, scheduling rest in ${response.cooldown.remainingSeconds} seconds" }
-            afterCooldown(response.cooldown) { rest(name) }
+            scheduler.afterCooldown(response.cooldown) { rest(name) }
         }
     }
 
@@ -64,23 +63,6 @@ class CharacterService(
             return OffsetDateTime.now().isBefore(it)
         }
         return false
-    }
-
-    private inline fun afterCooldown(character: CharacterSchema, crossinline block: () -> Unit) =
-        afterCooldown(character.cooldownExpiration, block)
-
-    private inline fun afterCooldown(character: CharacterEntity, crossinline block: () -> Unit) =
-        afterCooldown(character.cooldown_expiration, block)
-
-    private inline fun afterCooldown(cooldown: CooldownSchema, crossinline block: () -> Unit) =
-        afterCooldown(cooldown.expiration, block)
-
-    private inline fun afterCooldown(cooldownExpiration: OffsetDateTime?, crossinline block: () -> Unit) {
-        if (cooldownExpiration == null) {
-            block()
-        } else {
-            scheduler.schedule({ block() }, cooldownExpiration.toInstant())
-        }
     }
 
     private fun persist(character: CharacterEntity, existing: CharacterEntity? = null) {
