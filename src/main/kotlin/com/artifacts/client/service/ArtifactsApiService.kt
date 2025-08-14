@@ -55,6 +55,11 @@ class ArtifactsApiService(
         .retrieve()
         .logAndReturnBody<EquipmentResponseSchema>()
 
+    fun getItem(code: String) = artifactsApiRestClient.get()
+        .uri("/items/{code}", code)
+        .retrieve()
+        .logAndReturnBody<ItemResponseSchema>()
+
     private inline fun <reified T : Any> RestClient.ResponseSpec.logAndReturnBody(): T {
         val response = toEntity<T>()
         log.info { "Response status code: ${response.statusCode}" }

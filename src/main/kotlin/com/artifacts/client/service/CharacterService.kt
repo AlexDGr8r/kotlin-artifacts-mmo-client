@@ -24,7 +24,8 @@ class CharacterService(
     private val artifactsApi: ArtifactsApiService,
     private val characterRepo: CharacterRepository,
     private val inventorySlotRepo: InventorySlotRepository,
-    private val scheduler: TaskScheduler
+    private val scheduler: TaskScheduler,
+    private val itemService: ItemService,
 ) {
     private val log = KotlinLogging.logger {}
 
@@ -58,11 +59,6 @@ class CharacterService(
         val response = artifactsApi.move(name, destination)
         log.info { "$name moved to ${destination.x}, ${destination.y}" }
         return persist(response.data.character, character)
-    }
-
-    fun offsetMove(name: String, offset: DestinationSchema) {
-        val character = getCharacterFromDB(name) ?: artifactsApi.getCharacter(name).data.toEntity()
-        move(name, DestinationSchema(character.x + offset.x, character.y + offset.y), character)
     }
 
     fun fight(name: String, restAfterFight: Boolean = true) {
@@ -133,10 +129,21 @@ class CharacterService(
                 if (entities.isNotEmpty()) {
                     inventorySlotRepo.saveAll(entities)
                     log.info { "Inventory persisted for ${character.name}" }
+                    entities.forEach {
+                        // Force these to get loaded if not already loaded
+                        itemService.get(it.code)
+                    }
+                    log.info { "Preloaded ${entities.size} items for ${character.name}" }
                 } else {
                     log.info { "Inventory cleared for ${character.name} - no items" }
                 }
             }
+        itemService.getAll(
+            character.weaponSlot, character.runeSlot, character.shieldSlot, character.helmetSlot,
+            character.bodyArmorSlot, character.legArmorSlot, character.bootsSlot, character.ring1Slot,
+            character.ring2Slot, character.amuletSlot, character.artifact1Slot, character.artifact2Slot,
+            character.artifact3Slot, character.utility1Slot, character.utility2Slot, character.bagSlot
+        )
     }
 
     private fun getCharacterFromDB(name: String) = characterRepo.findByIdOrNull(name)

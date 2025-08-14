@@ -88,3 +88,18 @@ CREATE TABLE IF NOT EXISTS INVENTORY_SLOTS (
     quantity INT NOT NULL,
     UNIQUE (character, slot)
 );
+
+CREATE TABLE IF NOT EXISTS ITEMS (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    code VARCHAR(255) NOT NULL,
+    level INT NOT NULL,
+    type VARCHAR(100) NOT NULL,
+    subtype VARCHAR(100) NOT NULL,
+    description CLOB NOT NULL,
+    tradeable BOOLEAN NOT NULL,
+    conditions_json CLOB NULL,
+    effects_json CLOB NULL,
+    craft_json CLOB NULL,
+    UNIQUE (code)
+);
