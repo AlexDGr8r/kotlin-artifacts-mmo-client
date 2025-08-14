@@ -231,6 +231,18 @@ label.input-label {
     color: var(--text-dim);
 }
 
+/* Icons */
+.icon {
+    display: inline-block;
+    flex: 0 0 auto;
+    vertical-align: middle;
+}
+
+/* Spacing for icons within buttons and titles */
+.btn .icon, .card-title .icon, .panel-title .icon, .badge .icon {
+    margin-right: 6px;
+}
+
 .badge-accent {
     border-color: rgba(76, 201, 240, 0.5);
     color: var(--accent-2);
@@ -242,7 +254,6 @@ label.input-label {
 }
 
 .helper {
-    color: var(--muted);
     font-size: 13px;
 }
 

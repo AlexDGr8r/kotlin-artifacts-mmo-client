@@ -18,6 +18,7 @@ import {
     rest,
     unequip
 } from './api';
+import Icon from './components/Icon';
 
 // Simple relative time formatter: returns phrases like "in 30 seconds" or "30 seconds ago"
 function formatRelativeTime(target: Date | string | number, nowInput?: Date): string {
@@ -313,12 +314,12 @@ export default function App() {
                     <div style={{marginLeft: 'auto'}}>
                         {headerCooldownRelative ? (
                             <span className={"badge " + (headerCooldownFuture ? 'badge-accent' : 'badge-success')} title={headerCooldownDate ? headerCooldownDate.toString() : 'Cooldown status'}>
-                                Cooldown {headerCooldownRelative}
+                                <Icon name="clock" />Cooldown {headerCooldownRelative}
                             </span>
                         ) : cooldownText ? (
-                            <span className="badge badge-accent" title="Cooldown status">{cooldownText}</span>
+                            <span className="badge badge-accent" title="Cooldown status"><Icon name="clock" />{cooldownText}</span>
                         ) : (
-                            <span className="badge badge-success">Ready</span>
+                            <span className="badge badge-success"><Icon name="clock" />Ready</span>
                         )}
                     </div>
                 </div>
@@ -363,14 +364,14 @@ export default function App() {
                             </div>
 
                             <div className="row wrap fill">
-                                <button className="btn btn-accent" onClick={load} disabled={!isReady}>Load</button>
-                                <button className="btn btn-primary" onClick={doRefresh} disabled={!isReady}>Refresh</button>
+                                <button className="btn btn-accent" onClick={load} disabled={!isReady}><Icon name="download" />Load</button>
+                                <button className="btn btn-primary" onClick={doRefresh} disabled={!isReady}><Icon name="refresh" />Refresh</button>
                             </div>
 
                             <div className="row wrap fill">
-                                <button className="btn" onClick={doRest} disabled={!isReady}>Rest</button>
-                                <button className="btn btn-danger" onClick={doFight} disabled={!isReady}>Fight</button>
-                                <button className="btn" onClick={doGather} disabled={!isReady}>Gather</button>
+                                <button className="btn" onClick={doRest} disabled={!isReady}><Icon name="moon" />Rest</button>
+                                <button className="btn btn-danger" onClick={doFight} disabled={!isReady}><Icon name="sword" />Fight</button>
+                                <button className="btn" onClick={doGather} disabled={!isReady}><Icon name="leaf" />Gather</button>
                             </div>
 
                             <div className="stack">
@@ -392,8 +393,8 @@ export default function App() {
                                     />
                                 </div>
                                 <div className="row wrap fill">
-                                    <button className="btn" onClick={doMove} disabled={!isReady}>Move</button>
-                                    <button className="btn" onClick={doGatherAt} disabled={!isReady}>Gather</button>
+                                    <button className="btn" onClick={doMove} disabled={!isReady}><Icon name="arrow-right" />Move</button>
+                                    <button className="btn" onClick={doGatherAt} disabled={!isReady}><Icon name="leaf" />Gather</button>
                                 </div>
                             </div>
                         </div>
@@ -402,10 +403,10 @@ export default function App() {
                     {/* Data panel */}
                     <section className="card">
                         <div className="card-header">
-                            <h3 className="card-title">Character</h3>
+                            <h3 className="card-title"><Icon name="user" />Character</h3>
                             {character && (
                                 <div className="row wrap" style={{gap: 8}}>
-                                    <span className="badge">At {character.x ?? '-'},{character.y ?? '-'}</span>
+                                    <span className="badge"><Icon name="map-pin" />{character.x ?? '-'},{character.y ?? '-'}</span>
                                 </div>
                             )}
                         </div>

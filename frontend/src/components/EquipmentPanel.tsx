@@ -1,6 +1,7 @@
 import React, {useEffect, useMemo} from 'react';
 import useItemsCache from '../hooks/useItemsCache';
 import ItemImage from './ItemImage';
+import Icon from './Icon';
 
 export type EquipmentEntry = { key: string; label: string; apiSlot: string; code: string };
 
@@ -45,7 +46,7 @@ export default function EquipmentPanel({
   return (
     <section className="card full-bleed">
       <div className="card-header">
-        <h3 className="card-title">Equipment</h3>
+        <h3 className="card-title"><Icon name="shield" />Equipment</h3>
       </div>
       <div className="card-body">
         <div className="inventory-grid">
@@ -69,7 +70,9 @@ export default function EquipmentPanel({
                     onClick={() => onUnequip(e.apiSlot)}
                     disabled={disabled || !name}
                     title={`Unequip ${e.label}`}
-                  >Unequip</button>
+                  >
+                                      <Icon name="x-circle" />Unequip
+                                    </button>
                 </div>
               </div>
             );

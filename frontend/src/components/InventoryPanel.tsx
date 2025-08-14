@@ -2,6 +2,7 @@ import React, {useEffect, useMemo} from 'react';
 import {InventorySlot} from '../api';
 import useItemsCache from '../hooks/useItemsCache';
 import ItemImage from './ItemImage';
+import Icon from './Icon';
 
 export default function InventoryPanel({
   inventory,
@@ -38,9 +39,9 @@ export default function InventoryPanel({
   return (
     <section className="card full-bleed">
       <div className="card-header">
-        <h3 className="card-title">Inventory</h3>
+        <h3 className="card-title"><Icon name="box" />Inventory</h3>
         <div className="row wrap">
-          <button className="btn" onClick={onReload} disabled={!isReady || loading}>Reload</button>
+          <button className="btn" onClick={onReload} disabled={!isReady || loading}><Icon name="refresh" />Reload</button>
           {loading && <span className="row" style={{ gap: 6 }}><span className="loader" /> Loading...</span>}
         </div>
       </div>
@@ -83,7 +84,7 @@ export default function InventoryPanel({
                     onClick={() => onEquipFromSlot(Number(slotNum))}
                     disabled={slotsLoading || !equipTargetByInvSlot[Number(slotNum)] || !slot.code}
                     title="Equip this item"
-                  >Equip</button>
+                  ><Icon name="shield" />Equip</button>
                 </div>
               </div>
             );
