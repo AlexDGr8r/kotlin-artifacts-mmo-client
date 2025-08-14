@@ -123,6 +123,12 @@ class CharacterService(
     fun persistInventory(character: CharacterSchema) {
         // Easiest to just delete and re-insert all inventory slots
         inventorySlotRepo.deleteByCharacter(character.name)
+        val preloadedItems = itemService.getAll(
+            character.weaponSlot, character.runeSlot, character.shieldSlot, character.helmetSlot,
+            character.bodyArmorSlot, character.legArmorSlot, character.bootsSlot, character.ring1Slot,
+            character.ring2Slot, character.amuletSlot, character.artifact1Slot, character.artifact2Slot,
+            character.artifact3Slot, character.utility1Slot, character.utility2Slot, character.bagSlot
+        )
         character.inventory
             ?.map { it.toEntity(character.name) }
             ?.let { entities ->
@@ -133,17 +139,11 @@ class CharacterService(
                         // Force these to get loaded if not already loaded
                         itemService.get(it.code)
                     }
-                    log.info { "Preloaded ${entities.size} items for ${character.name}" }
+                    log.info { "Preloaded ${entities.size + preloadedItems.size} items for ${character.name}" }
                 } else {
                     log.info { "Inventory cleared for ${character.name} - no items" }
                 }
             }
-        itemService.getAll(
-            character.weaponSlot, character.runeSlot, character.shieldSlot, character.helmetSlot,
-            character.bodyArmorSlot, character.legArmorSlot, character.bootsSlot, character.ring1Slot,
-            character.ring2Slot, character.amuletSlot, character.artifact1Slot, character.artifact2Slot,
-            character.artifact3Slot, character.utility1Slot, character.utility2Slot, character.bagSlot
-        )
     }
 
     private fun getCharacterFromDB(name: String) = characterRepo.findByIdOrNull(name)

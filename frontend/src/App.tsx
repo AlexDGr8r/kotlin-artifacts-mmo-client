@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import CharacterDetails from './components/CharacterDetails';
 import EquipmentPanel from './components/EquipmentPanel';
 import InventoryPanel from './components/InventoryPanel';
@@ -244,6 +244,31 @@ export default function App() {
             setLoading(false);
         }
     }, [name, dest, load])
+
+    // Auto-load when cooldown expires with a 1s buffer
+    const lastAutoLoadAtRef = useRef<number | null>(null);
+    useEffect(() => {
+        if (!name) return;
+        const t = headerCooldownDate?.getTime();
+        if (!t || !Number.isFinite(t)) return;
+        const mark = t; // use timestamp as a unique marker
+        const now = Date.now();
+        const delay = t - now + 2000; // 2s buffer after cooldown
+        if (delay <= 0) {
+            if (lastAutoLoadAtRef.current !== mark && !loading) {
+                lastAutoLoadAtRef.current = mark;
+                load().then();
+            }
+            return;
+        }
+        const id = setTimeout(() => {
+            if (lastAutoLoadAtRef.current !== mark) {
+                lastAutoLoadAtRef.current = mark;
+                load().then();
+            }
+        }, delay);
+        return () => clearTimeout(id);
+    }, [name, headerCooldownDate, load, loading]);
 
     useEffect(() => {
         setCharacter(null);
