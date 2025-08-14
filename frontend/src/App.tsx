@@ -36,15 +36,23 @@ function formatRelativeTime(target: Date | string | number, nowInput?: Date): st
 
     let unit: string;
     let value: number;
-    if (sec < 60) { unit = 'second'; value = sec; }
-    else if (min < 60) { unit = 'minute'; value = min; }
-    else if (hr < 24) { unit = 'hour'; value = hr; }
-    else { unit = 'day'; value = day; }
+    if (sec < 60) {
+        unit = 'second';
+        value = sec;
+    } else if (min < 60) {
+        unit = 'minute';
+        value = min;
+    } else if (hr < 24) {
+        unit = 'hour';
+        value = hr;
+    } else {
+        unit = 'day';
+        value = day;
+    }
 
     const plural = value === 1 ? '' : 's';
     return past ? `${value} ${unit}${plural} ago` : `in ${value} ${unit}${plural}`;
 }
-
 
 
 export default function App() {
@@ -130,7 +138,9 @@ export default function App() {
                 if (!cancelled) setSlotsLoading(false);
             }
         })();
-        return () => { cancelled = true; };
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     const loadInventory = useCallback(async () => {
@@ -292,7 +302,7 @@ export default function App() {
         setLoading(true);
         setError(null);
         try {
-            await equip(name, { slot: targetSlot, code: invSlot.code });
+            await equip(name, {slot: targetSlot, code: invSlot.code});
             await Promise.all([load(), loadInventory()]);
         } catch (e: any) {
             setError(e?.message || String(e));
@@ -313,13 +323,15 @@ export default function App() {
                     </div>
                     <div style={{marginLeft: 'auto'}}>
                         {headerCooldownRelative ? (
-                            <span className={"badge " + (headerCooldownFuture ? 'badge-accent' : 'badge-success')} title={headerCooldownDate ? headerCooldownDate.toString() : 'Cooldown status'}>
-                                <Icon name="clock" />Cooldown {headerCooldownRelative}
+                            <span className={"badge " + (headerCooldownFuture ? 'badge-accent' : 'badge-success')}
+                                  title={headerCooldownDate ? headerCooldownDate.toString() : 'Cooldown status'}>
+                                <Icon name="clock"/>Cooldown {headerCooldownRelative}
                             </span>
                         ) : cooldownText ? (
-                            <span className="badge badge-accent" title="Cooldown status"><Icon name="clock" />{cooldownText}</span>
+                            <span className="badge badge-accent" title="Cooldown status"><Icon
+                                name="clock"/>{cooldownText}</span>
                         ) : (
-                            <span className="badge badge-success"><Icon name="clock" />Ready</span>
+                            <span className="badge badge-success"><Icon name="clock"/>Ready</span>
                         )}
                     </div>
                 </div>
@@ -331,7 +343,7 @@ export default function App() {
                     <section className="panel">
                         <div className="panel-inner stack">
                             <div className="row wrap">
-                                <h3 className="panel-title">Controls</h3>
+                                <h3 className="panel-title"><Icon name={"controls"}/>Controls</h3>
                                 {loading &&
                                     <span className="row" style={{gap: 6}}><span className="loader"/> Loading...</span>}
                             </div>
@@ -364,14 +376,22 @@ export default function App() {
                             </div>
 
                             <div className="row wrap fill">
-                                <button className="btn btn-accent" onClick={load} disabled={!isReady}><Icon name="download" />Load</button>
-                                <button className="btn btn-primary" onClick={doRefresh} disabled={!isReady}><Icon name="refresh" />Refresh</button>
+                                <button className="btn btn-accent" onClick={load} disabled={!isReady}><Icon
+                                    name="download"/>Load
+                                </button>
+                                <button className="btn btn-primary" onClick={doRefresh} disabled={!isReady}><Icon
+                                    name="refresh"/>Refresh
+                                </button>
                             </div>
 
                             <div className="row wrap fill">
-                                <button className="btn" onClick={doRest} disabled={!isReady}><Icon name="moon" />Rest</button>
-                                <button className="btn btn-danger" onClick={doFight} disabled={!isReady}><Icon name="sword" />Fight</button>
-                                <button className="btn" onClick={doGather} disabled={!isReady}><Icon name="leaf" />Gather</button>
+                                <button className="btn" onClick={doRest} disabled={!isReady}><Icon name="moon"/>Rest
+                                </button>
+                                <button className="btn btn-danger" onClick={doFight} disabled={!isReady}><Icon
+                                    name="sword"/>Fight
+                                </button>
+                                <button className="btn" onClick={doGather} disabled={!isReady}><Icon name="leaf"/>Gather
+                                </button>
                             </div>
 
                             <div className="stack">
@@ -393,8 +413,11 @@ export default function App() {
                                     />
                                 </div>
                                 <div className="row wrap fill">
-                                    <button className="btn" onClick={doMove} disabled={!isReady}><Icon name="arrow-right" />Move</button>
-                                    <button className="btn" onClick={doGatherAt} disabled={!isReady}><Icon name="leaf" />Gather</button>
+                                    <button className="btn" onClick={doMove} disabled={!isReady}><Icon
+                                        name="arrow-right"/>Move
+                                    </button>
+                                    <button className="btn" onClick={doGatherAt} disabled={!isReady}><Icon name="leaf"/>Gather
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -403,16 +426,17 @@ export default function App() {
                     {/* Data panel */}
                     <section className="card">
                         <div className="card-header">
-                            <h3 className="card-title"><Icon name="user" />Character</h3>
+                            <h3 className="card-title"><Icon name="user"/>Character</h3>
                             {character && (
                                 <div className="row wrap" style={{gap: 8}}>
-                                    <span className="badge"><Icon name="map-pin" />{character.x ?? '-'},{character.y ?? '-'}</span>
+                                    <span className="badge"><Icon
+                                        name="map-pin"/>{character.x ?? '-'},{character.y ?? '-'}</span>
                                 </div>
                             )}
                         </div>
                         <div className="card-body">
                             {character ? (
-                                <CharacterDetails data={character} />
+                                <CharacterDetails data={character}/>
                             ) : (
                                 <div className="helper">No character loaded.</div>
                             )}
@@ -430,7 +454,7 @@ export default function App() {
                                 setLoading(true);
                                 setError(null);
                                 try {
-                                    await unequip(name, { slot: apiSlot });
+                                    await unequip(name, {slot: apiSlot});
                                     await load();
                                 } catch (err: any) {
                                     setError(err?.message || String(err));
