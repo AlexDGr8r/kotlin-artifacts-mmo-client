@@ -1,10 +1,8 @@
 package com.artifacts.client.controller
 
+import com.artifacts.client.service.ArtifactsApiService
 import com.artifacts.client.service.ItemService
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/items")
@@ -15,5 +13,9 @@ class ItemController(
     @GetMapping("/{code}")
     fun fetchAndStore(@PathVariable code: String) =
         itemService.get(code) ?: throw NoSuchElementException("Item not found")
+
+    @PostMapping("/find")
+    fun findItems(@RequestBody schema: ArtifactsApiService.FindItemsSchema) =
+        itemService.findItems(schema)
 
 }

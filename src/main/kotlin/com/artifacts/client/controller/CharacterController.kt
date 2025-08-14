@@ -55,4 +55,8 @@ class CharacterController(
     fun craft(@PathVariable name: String, @RequestBody schema: CraftingSchema) =
         characterService.craft(name, schema)
 
+    @GetMapping("/{name}/craft/status/{itemCode}")
+    fun craftStatus(@PathVariable name: String, @PathVariable itemCode: String) =
+        characterService.canCraft(itemCode, name)
+
 }

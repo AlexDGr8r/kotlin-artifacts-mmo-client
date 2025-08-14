@@ -21,8 +21,8 @@ object TaskSchedulerExtensions {
         if (cooldownExpiration == null) {
             block()
         } else {
-            // 1 second buffer to give some leeway
-            val scheduledTime = cooldownExpiration.toInstant().plusSeconds(1)
+            // 3 second buffer to give some leeway
+            val scheduledTime = cooldownExpiration.toInstant().plusSeconds(3)
             schedule({ block() }, scheduledTime)
         }
     }

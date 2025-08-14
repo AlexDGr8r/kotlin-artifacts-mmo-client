@@ -9,6 +9,7 @@ data class CharacterInventory(
     val equipped: Map<EquipmentSlot, String>,
     val maxItems: Int,
     val gold: Int,
+    val character: CharacterEntity,
 ) {
     constructor(character: CharacterEntity, inventory: Map<Int, InventorySlotEntity>) :
             this(
@@ -33,6 +34,7 @@ data class CharacterInventory(
                 ),
                 character.inventory_max_items,
                 character.gold,
+                character,
             )
 
     constructor(character: CharacterSchema) :

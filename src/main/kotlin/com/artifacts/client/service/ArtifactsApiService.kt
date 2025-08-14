@@ -66,6 +66,33 @@ class ArtifactsApiService(
         .retrieve()
         .logAndReturnBody<SkillDataSchema>()
 
+    data class FindItemsSchema(
+        val craftMaterial: String? = null,
+        val craftSkill: CraftSkill? = null,
+        val maxLevel: Int? = null,
+        val minLevel: Int? = null,
+        val itemName: String? = null,
+        val page: Int? = null,
+        val pageSize: Int? = null,
+        val type: ItemType? = null,
+    )
+
+    fun findItems(schema: FindItemsSchema) = artifactsApiRestClient.get()
+        .uri { uriBuilder ->
+            uriBuilder.path("/items")
+            schema.craftMaterial?.let { uriBuilder.queryParam("craft_material", it) }
+            schema.craftSkill?.let { uriBuilder.queryParam("craft_skill", it.value) }
+            schema.maxLevel?.let { uriBuilder.queryParam("max_level", it) }
+            schema.minLevel?.let { uriBuilder.queryParam("min_level", it) }
+            schema.itemName?.let { uriBuilder.queryParam("name", it) }
+            schema.page?.let { uriBuilder.queryParam("page", it) }
+            schema.pageSize?.let { uriBuilder.queryParam("page_size", it) }
+            schema.type?.let { uriBuilder.queryParam("type", it.value) }
+            uriBuilder.build()
+        }
+        .retrieve()
+        .logAndReturnBody<DataPageItemSchema>()
+
     private inline fun <reified T : Any> RestClient.ResponseSpec.logAndReturnBody(): T {
         val response = toEntity<T>()
         log.info { "Response status code: ${response.statusCode}" }

@@ -1,6 +1,5 @@
 package com.artifacts.client.service
 
-import com.artifacts.client.domain.CharacterEntity
 import com.artifacts.client.domain.CharacterInventory
 import com.artifacts.client.domain.ItemEntity
 import com.artifacts.client.mappers.ItemMapper.toEntity
@@ -22,8 +21,12 @@ class ItemService(
     fun fetchAndStore(code: String): ItemEntity {
         log.info { "Item ($code) not found in database, fetching from API"}
         val apiItem = artifactsApi.getItem(code).data
-        val existing = itemRepo.findByCode(code)
-        val entity = apiItem.toEntity()
+        return store(apiItem)
+    }
+
+    fun store(item: ItemSchema): ItemEntity {
+        val existing = itemRepo.findByCode(item.code)
+        val entity = item.toEntity()
         val toSave = existing?.let { entity.copy(id = it.id) } ?: entity
         val saved = itemRepo.save(toSave)
         log.info { "Item persisted: ${saved.code} - ${saved.name}" }
@@ -40,26 +43,7 @@ class ItemService(
 
     fun getAll(vararg codes: String) = codes.mapNotNull { get(it) }
 
-    fun canCraft(itemCode: String, inv: CharacterInventory, character: CharacterEntity): Boolean {
-        val item = get(itemCode) ?: return false
-        item.craft?.let { craft ->
-            val skillLevel = character.getSkillLevel(craft.skill)
-            val requiredLevel = craft.level ?: 1
-            if (skillLevel < requiredLevel) {
-                log.info { "Character ${character.name} does not meet skill level for $itemCode" }
-                return false
-            }
-            craft.items?.forEach { requiredItem ->
-                val quantityHave = quantityInInventory(requiredItem.code, inv)
-                if (quantityHave < requiredItem.quantity) {
-                    log.info { "Character ${character.name} does not have enough ${requiredItem.code} to craft $itemCode" }
-                    return false
-                }
-            }
-            return true
-        }
-        return false
-    }
+
 
     fun findItemsInInventory(item: String, inv: CharacterInventory) =
         inv.inventory.values.filter { it.code == item }
@@ -67,5 +51,11 @@ class ItemService(
     fun quantityInInventory(item: String, inv: CharacterInventory) =
         findItemsInInventory(item, inv).sumOf { it.quantity }
 
+    fun findItems(schema: ArtifactsApiService.FindItemsSchema): List<ItemSchema> {
+        val items = artifactsApi.findItems(schema)
+        // Store them since we have them
+        items.data.forEach { item -> store(item) }
+        return items.data
+    }
 
 }

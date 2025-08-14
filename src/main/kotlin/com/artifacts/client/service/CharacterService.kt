@@ -144,6 +144,32 @@ class CharacterService(
             }
     }
 
+    data class CraftCheckResult(val canCraft: Boolean, val message: String? = null)
+
+    fun canCraft(itemCode: String, charName: String) = canCraft(itemCode, getFullInventory(charName))
+
+    fun canCraft(itemCode: String, inv: CharacterInventory): CraftCheckResult {
+        val item = itemService.get(itemCode) ?: return CraftCheckResult(false, "Item $itemCode not found")
+        val character = inv.character
+        item.craft?.let { craft ->
+            val skillLevel = character.getSkillLevel(craft.skill)
+            val requiredLevel = craft.level ?: 1
+            if (skillLevel < requiredLevel) {
+                log.info { "Character ${character.name} does not meet skill level for $itemCode" }
+                return CraftCheckResult(false, "Skill level $skillLevel is below required level $requiredLevel")
+            }
+            craft.items?.forEach { requiredItem ->
+                val quantityHave = itemService.quantityInInventory(requiredItem.code, inv)
+                if (quantityHave < requiredItem.quantity) {
+                    log.info { "Character (${character.name}) does not have enough ${requiredItem.code} to craft ${item.name}." }
+                    return CraftCheckResult(false, "Character (${character.name}) does not have enough ${requiredItem.code} to craft ${item.name}.")
+                }
+            }
+            return CraftCheckResult(true)
+        }
+        return CraftCheckResult(false, "Item (${item.name}) is not craftable")
+    }
+
     private fun CharacterEntity.isAtDestination(destination: DestinationSchema) =
         this.x == destination.x && this.y == destination.y
 
