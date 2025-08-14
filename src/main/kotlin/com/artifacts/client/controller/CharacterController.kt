@@ -1,9 +1,6 @@
 package com.artifacts.client.controller
 
-import com.artifacts.client.openapi.models.DestinationSchema
-import com.artifacts.client.openapi.models.EquipSchema
-import com.artifacts.client.openapi.models.ItemSlot
-import com.artifacts.client.openapi.models.UnequipSchema
+import com.artifacts.client.openapi.models.*
 import com.artifacts.client.service.CharacterService
 import org.springframework.web.bind.annotation.*
 
@@ -33,10 +30,6 @@ class CharacterController(
     @GetMapping("/{name}/rest")
     fun rest(@PathVariable name: String) = characterService.rest(name)
 
-    @GetMapping("/{name}/cooldown")
-    fun isOnCooldown(@PathVariable name: String) =
-        "$name on cooldown: ${characterService.isOnCooldown(name)}"
-
     @GetMapping("/{name}/gather")
     fun gather(@PathVariable name: String) = characterService.gather(name)
 
@@ -57,5 +50,9 @@ class CharacterController(
 
     @GetMapping("/{name}/inventory")
     fun inventory(@PathVariable name: String) = characterService.getInventory(name)
+
+    @PostMapping("/{name}/craft")
+    fun craft(@PathVariable name: String, @RequestBody schema: CraftingSchema) =
+        characterService.craft(name, schema)
 
 }

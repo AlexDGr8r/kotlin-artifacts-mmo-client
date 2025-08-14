@@ -1,14 +1,12 @@
 package com.artifacts.client.service
 
 import com.artifacts.client.domain.CharacterEntity
+import com.artifacts.client.domain.CharacterInventory
 import com.artifacts.client.domain.InventorySlotEntity
 import com.artifacts.client.extensions.TaskSchedulerExtensions.afterCooldown
 import com.artifacts.client.mappers.CharacterMapper.toEntity
 import com.artifacts.client.mappers.InventorySlotMapper.toEntity
-import com.artifacts.client.openapi.models.CharacterSchema
-import com.artifacts.client.openapi.models.DestinationSchema
-import com.artifacts.client.openapi.models.EquipSchema
-import com.artifacts.client.openapi.models.UnequipSchema
+import com.artifacts.client.openapi.models.*
 import com.artifacts.client.repository.CharacterRepository
 import com.artifacts.client.repository.InventorySlotRepository
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -16,7 +14,6 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.scheduling.TaskScheduler
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.time.OffsetDateTime
 
 @Service
 @Transactional
@@ -34,7 +31,7 @@ class CharacterService(
         return persist(character)
     }
 
-    fun get(name: String): CharacterEntity? = characterRepo.findByIdOrNull(name)
+    fun get(name: String): CharacterEntity = characterRepo.findByIdOrNull(name) ?: forceRefresh(name)
 
     fun getAll(): List<CharacterEntity> {
         val characters = artifactsApi.getAllCharacters().data
@@ -50,9 +47,12 @@ class CharacterService(
         return slots.associateBy { it.slot }
     }
 
+    fun getFullInventory(name: String) =
+        CharacterInventory(get(name), getInventory(name))
+
     fun move(name: String, destination: DestinationSchema, entity: CharacterEntity? = null): CharacterEntity {
-        val character = entity ?: getCharacterFromDB(name)
-        if (character?.isAtDestination(destination) == true) {
+        val character = entity ?: get(name)
+        if (character.isAtDestination(destination)) {
             log.info { "$name is already at ${destination.x}, ${destination.y}" }
             return character
         }
@@ -102,12 +102,10 @@ class CharacterService(
         return persist(response.character)
     }
 
-    fun isOnCooldown(name: String, entity: CharacterEntity? = null): Boolean {
-        val character = entity ?: getCharacterFromDB(name)
-        character?.cooldown_expiration?.let {
-            return OffsetDateTime.now().isBefore(it)
-        }
-        return false
+    fun craft(charName: String, schema: CraftingSchema): CharacterEntity {
+        val resp = artifactsApi.craft(charName, schema)
+        log.info { "$charName crafted ${schema.quantity} ${schema.code}" }
+        return persist(resp.character)
     }
 
     fun persist(character: CharacterSchema, existing: CharacterEntity? = null): CharacterEntity {
@@ -145,8 +143,6 @@ class CharacterService(
                 }
             }
     }
-
-    private fun getCharacterFromDB(name: String) = characterRepo.findByIdOrNull(name)
 
     private fun CharacterEntity.isAtDestination(destination: DestinationSchema) =
         this.x == destination.x && this.y == destination.y

@@ -1,5 +1,7 @@
 package com.artifacts.client.service
 
+import com.artifacts.client.domain.CharacterEntity
+import com.artifacts.client.domain.CharacterInventory
 import com.artifacts.client.domain.ItemEntity
 import com.artifacts.client.mappers.ItemMapper.toEntity
 import com.artifacts.client.mappers.ItemMapper.toSchema
@@ -37,6 +39,33 @@ class ItemService(
     }
 
     fun getAll(vararg codes: String) = codes.mapNotNull { get(it) }
+
+    fun canCraft(itemCode: String, inv: CharacterInventory, character: CharacterEntity): Boolean {
+        val item = get(itemCode) ?: return false
+        item.craft?.let { craft ->
+            val skillLevel = character.getSkillLevel(craft.skill)
+            val requiredLevel = craft.level ?: 1
+            if (skillLevel < requiredLevel) {
+                log.info { "Character ${character.name} does not meet skill level for $itemCode" }
+                return false
+            }
+            craft.items?.forEach { requiredItem ->
+                val quantityHave = quantityInInventory(requiredItem.code, inv)
+                if (quantityHave < requiredItem.quantity) {
+                    log.info { "Character ${character.name} does not have enough ${requiredItem.code} to craft $itemCode" }
+                    return false
+                }
+            }
+            return true
+        }
+        return false
+    }
+
+    fun findItemsInInventory(item: String, inv: CharacterInventory) =
+        inv.inventory.values.filter { it.code == item }
+
+    fun quantityInInventory(item: String, inv: CharacterInventory) =
+        findItemsInInventory(item, inv).sumOf { it.quantity }
 
 
 }

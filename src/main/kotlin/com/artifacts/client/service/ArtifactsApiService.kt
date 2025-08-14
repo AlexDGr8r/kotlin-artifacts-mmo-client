@@ -60,6 +60,12 @@ class ArtifactsApiService(
         .retrieve()
         .logAndReturnBody<ItemResponseSchema>()
 
+    fun craft(charName: String, schema: CraftingSchema) = artifactsApiRestClient.post()
+        .uri("/my/{name}/action/crafting", charName)
+        .body(schema)
+        .retrieve()
+        .logAndReturnBody<SkillDataSchema>()
+
     private inline fun <reified T : Any> RestClient.ResponseSpec.logAndReturnBody(): T {
         val response = toEntity<T>()
         log.info { "Response status code: ${response.statusCode}" }

@@ -1,5 +1,7 @@
 package com.artifacts.client.domain
 
+import com.artifacts.client.openapi.models.CraftSkill
+import com.artifacts.client.openapi.models.Skill
 import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.Version
 import org.springframework.data.relational.core.mapping.Table
@@ -87,4 +89,31 @@ data class CharacterEntity(
     val cooldown_expiration: OffsetDateTime?,
     @Version
     var version: Int? = null
-)
+) {
+    fun getSkillLevel(skill: Skill?): Int {
+        return when (skill) {
+            Skill.weaponcrafting -> weaponcrafting_level
+            Skill.gearcrafting -> gearcrafting_level
+            Skill.jewelrycrafting -> jewelrycrafting_level
+            Skill.cooking -> cooking_level
+            Skill.woodcutting -> woodcutting_level
+            Skill.mining -> mining_level
+            Skill.alchemy -> alchemy_level
+            Skill.fishing -> fishing_level
+            else -> 1
+        }
+    }
+
+    fun getSkillLevel(skill: CraftSkill?): Int {
+        return when (skill) {
+            CraftSkill.weaponcrafting -> weaponcrafting_level
+            CraftSkill.gearcrafting -> gearcrafting_level
+            CraftSkill.jewelrycrafting -> jewelrycrafting_level
+            CraftSkill.cooking -> cooking_level
+            CraftSkill.woodcutting -> woodcutting_level
+            CraftSkill.mining -> mining_level
+            CraftSkill.alchemy -> alchemy_level
+            else -> 1
+        }
+    }
+}

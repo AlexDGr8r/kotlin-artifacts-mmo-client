@@ -29,11 +29,13 @@ export default function CharacterDetails({ data }: { data: any }) {
         if (k.endsWith('_xp')) {
           const prefix = k.slice(0, -3);
           const maxKey = `${prefix}_max_xp`;
+          const levelKey = `${prefix}_level`;
           const cur = Number((data as any)[k]);
           const max = Number((data as any)[maxKey]);
+          const level = Number((data as any)[levelKey]);
           if (Number.isFinite(cur) && Number.isFinite(max) && max > 0) {
             const nice = prefix
-              ? (prefix.charAt(0).toUpperCase() + prefix.slice(1)).replace(/_/g, ' ') + ' XP'
+              ? (prefix.charAt(0).toUpperCase() + prefix.slice(1)).replace(/_/g, ' ') + ' - Lvl ' + level
               : 'XP';
             bars.push({ label: nice, value: cur, max });
           }
