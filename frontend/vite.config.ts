@@ -11,6 +11,10 @@ export default defineConfig({
       '/character': {
         target: 'http://localhost:8080',
         changeOrigin: true,
+      },
+      '/items': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
       }
     }
   }

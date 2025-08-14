@@ -8,8 +8,10 @@ import {
     getAllCharacters,
     getCharacter,
     getInventory,
+    getItem,
     getSlots,
     InventorySlot,
+    Item,
     move,
     refreshCharacter,
     rest,
@@ -199,6 +201,11 @@ export default function App() {
     const [inventoryLoading, setInventoryLoading] = useState<boolean>(false);
     const [inventoryError, setInventoryError] = useState<string | null>(null);
 
+    // Item details cache: code -> item
+    const [itemCache, setItemCache] = useState<Record<string, Item>>({});
+    const [itemLoadingCodes, setItemLoadingCodes] = useState<Set<string>>(new Set());
+    const [itemErrors, setItemErrors] = useState<Record<string, string>>({});
+
     // Live header cooldown relative time tick
     const [timeTick, setTimeTick] = useState(0);
     useEffect(() => {
@@ -382,6 +389,10 @@ export default function App() {
         setCooldownText('');
         setInventory({});
         setInventoryError(null);
+        // Reset item details when switching character
+        setItemCache({});
+        setItemLoadingCodes(new Set());
+        setItemErrors({});
     }, [name]);
 
     const [equipTargetByInvSlot, setEquipTargetByInvSlot] = useState<Record<number, string>>({});
@@ -538,11 +549,44 @@ export default function App() {
                                 const apiSlot = k.replace(/_slot$/i, '').toLowerCase();
                                 const pretty = apiSlot.charAt(0) + apiSlot.slice(1).toLowerCase();
                                 const label = pretty.replace(/_/g, ' ');
-                                const code = typeof val === 'object' ? (val.code ?? val.name ?? String(val)) : String(val);
+                                const code = (typeof val === 'object' ? (val.code ?? val.name ?? String(val)) : String(val)).trim();
                                 entries.push({ key: k, label, apiSlot, code });
                             }
                         }
                         if (entries.length === 0) return null;
+
+                        // Trigger fetch for any missing equipment item details
+                        const codesToFetch = entries.map(e => e.code).filter(code => code && !itemCache[code] && !itemLoadingCodes.has(code));
+                        if (codesToFetch.length > 0) {
+                            (async () => {
+                                // mark as loading
+                                setItemLoadingCodes(prev => new Set([...Array.from(prev), ...codesToFetch]));
+                                try {
+                                    const items = await Promise.all(codesToFetch.map(c => getItem(c).catch(err => ({ __err: String(err), code: c }) as any)));
+                                    setItemCache(prev => {
+                                        const next = { ...prev } as Record<string, Item>;
+                                        for (const it of items) {
+                                            if (it && !(it as any).__err) next[it.code] = it as Item;
+                                        }
+                                        return next;
+                                    });
+                                    setItemErrors(prev => {
+                                        const next = { ...prev };
+                                        for (const it of items) {
+                                            if ((it as any)?.__err) next[(it as any).code] = (it as any).__err;
+                                        }
+                                        return next;
+                                    });
+                                } finally {
+                                    setItemLoadingCodes(prev => {
+                                        const next = new Set(prev);
+                                        codesToFetch.forEach(c => next.delete(c));
+                                        return next;
+                                    });
+                                }
+                            })();
+                        }
+
                         return (
                             <section className="card full-bleed">
                                 <div className="card-header">
@@ -550,45 +594,51 @@ export default function App() {
                                 </div>
                                 <div className="card-body">
                                     <div className="inventory-grid">
-                                        {entries.sort((a,b)=> a.label.localeCompare(b.label)).map((e) => (
-                                            <div key={e.key} className="inv-slot">
-                                                <div className="inv-slot-header">
-                                                    <span className="badge">{e.label}</span>
+                                        {entries.sort((a,b)=> a.label.localeCompare(b.label)).map((e) => {
+                                            const item = itemCache[e.code];
+                                            const displayName = item?.name || e.code;
+                                            const displayLevel = item?.level;
+                                            return (
+                                                <div key={e.key} className="inv-slot">
+                                                    <div className="inv-slot-header">
+                                                        <span className="badge">{e.label}</span>
+                                                        {Number.isFinite(displayLevel as any) && <span className="badge">Lv {displayLevel}</span>}
+                                                    </div>
+                                                    <div className="inv-slot-body">
+                                                        <img
+                                                            key={e.code}
+                                                            className="item-img"
+                                                            src={itemImageUrl(e.code)}
+                                                            alt={e.code}
+                                                            loading="lazy"
+                                                            onLoad={handleItemImgLoad}
+                                                            onError={handleItemImgError}
+                                                        />
+                                                        <div className="item-code" title={e.code}>{displayName}</div>
+                                                    </div>
+                                                    <div className="inv-slot-actions" style={{gap: 6}}>
+                                                        <button
+                                                            className="btn"
+                                                            onClick={async () => {
+                                                                if (!name) return;
+                                                                setLoading(true);
+                                                                setError(null);
+                                                                try {
+                                                                    await unequip(name, { slot: e.apiSlot });
+                                                                    await load(); // load() calls loadInventory too
+                                                                } catch (err: any) {
+                                                                    setError(err?.message || String(err));
+                                                                } finally {
+                                                                    setLoading(false);
+                                                                }
+                                                            }}
+                                                            disabled={loading || !name}
+                                                            title={`Unequip ${e.label}`}
+                                                        >Unequip</button>
+                                                    </div>
                                                 </div>
-                                                <div className="inv-slot-body">
-                                                    <img
-                                                        key={e.code}
-                                                        className="item-img"
-                                                        src={itemImageUrl(e.code)}
-                                                        alt={e.code}
-                                                        loading="lazy"
-                                                        onLoad={handleItemImgLoad}
-                                                        onError={handleItemImgError}
-                                                    />
-                                                    <div className="item-code" title={e.code}>{e.code}</div>
-                                                </div>
-                                                <div className="inv-slot-actions" style={{gap: 6}}>
-                                                    <button
-                                                        className="btn"
-                                                        onClick={async () => {
-                                                            if (!name) return;
-                                                            setLoading(true);
-                                                            setError(null);
-                                                            try {
-                                                                await unequip(name, { slot: e.apiSlot });
-                                                                await load(); // load() calls loadInventory too
-                                                            } catch (err: any) {
-                                                                setError(err?.message || String(err));
-                                                            } finally {
-                                                                setLoading(false);
-                                                            }
-                                                        }}
-                                                        disabled={loading || !name}
-                                                        title={`Unequip ${e.label}`}
-                                                    >Unequip</button>
-                                                </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </section>
@@ -610,45 +660,66 @@ export default function App() {
                                 <div className="helper">Inventory is empty.</div>
                             )}
                             <div className="inventory-grid">
-                                {Object.entries(inventory).sort((a,b)=> Number(a[0]) - Number(b[0])).map(([slotNum, slot]) => (
-                                    <div key={slotNum} className="inv-slot">
-                                        <div className="inv-slot-header">
-                                            <span className="badge">Slot {slotNum}</span>
-                                            <span className="badge">Qty {slot.quantity}</span>
+                                {Object.entries(inventory).sort((a,b)=> Number(a[0]) - Number(b[0])).map(([slotNum, slot]) => {
+                                    // ensure we have details for this code
+                                    const code = (slot.code || '').trim();
+                                    if (code && !itemCache[code] && !itemLoadingCodes.has(code)) {
+                                        (async () => {
+                                            setItemLoadingCodes(prev => new Set([...Array.from(prev), code]));
+                                            try {
+                                                const item = await getItem(code);
+                                                setItemCache(prev => ({ ...prev, [code]: item }));
+                                            } catch (err: any) {
+                                                setItemErrors(prev => ({ ...prev, [code]: err?.message || String(err) }));
+                                            } finally {
+                                                setItemLoadingCodes(prev => { const next = new Set(prev); next.delete(code); return next; });
+                                            }
+                                        })();
+                                    }
+                                    const item = itemCache[code];
+                                    const displayName = item?.name || code;
+                                    const displayLevel = item?.level;
+                                    return (
+                                        <div key={slotNum} className="inv-slot">
+                                            <div className="inv-slot-header">
+                                                <span className="badge">Slot {slotNum}</span>
+                                                <span className="badge">Qty {slot.quantity}</span>
+                                                {Number.isFinite(displayLevel as any) && <span className="badge">Lvl {displayLevel}</span>}
+                                            </div>
+                                            <div className="inv-slot-body">
+                                                {code.length > 0 && <img
+                                                    key={slot.code}
+                                                    className="item-img"
+                                                    src={itemImageUrl(code)}
+                                                    alt={code}
+                                                    loading="lazy"
+                                                    onLoad={handleItemImgLoad}
+                                                    onError={handleItemImgError}
+                                                />}
+                                                <div className="item-code" title={code}>{displayName}</div>
+                                            </div>
+                                            <div className="inv-slot-actions" style={{gap: 6}}>
+                                                <select
+                                                    className="input"
+                                                    value={equipTargetByInvSlot[Number(slotNum)] || ''}
+                                                    onChange={(e) => setEquipTargetByInvSlot(prev => ({...prev, [Number(slotNum)]: e.target.value}))}
+                                                    disabled={slotsLoading}
+                                                >
+                                                    <option value="">Select Slot</option>
+                                                    {slots.map(s => (
+                                                        <option key={s} value={s}>{s}</option>
+                                                    ))}
+                                                </select>
+                                                <button
+                                                    className="btn btn-primary"
+                                                    onClick={() => doEquipFromSlot(Number(slotNum))}
+                                                    disabled={loading || slotsLoading || !equipTargetByInvSlot[Number(slotNum)] || !slot.code}
+                                                    title="Equip this item"
+                                                >Equip</button>
+                                            </div>
                                         </div>
-                                        <div className="inv-slot-body">
-                                            <img
-                                                key={slot.code}
-                                                className="item-img"
-                                                src={itemImageUrl(slot.code)}
-                                                alt={slot.code}
-                                                loading="lazy"
-                                                onLoad={handleItemImgLoad}
-                                                onError={handleItemImgError}
-                                            />
-                                            <div className="item-code" title={slot.code}>{slot.code}</div>
-                                        </div>
-                                        <div className="inv-slot-actions" style={{gap: 6}}>
-                                            <select
-                                                className="input"
-                                                value={equipTargetByInvSlot[Number(slotNum)] || ''}
-                                                onChange={(e) => setEquipTargetByInvSlot(prev => ({...prev, [Number(slotNum)]: e.target.value}))}
-                                                disabled={slotsLoading}
-                                            >
-                                                <option value="">Select Slot</option>
-                                                {slots.map(s => (
-                                                    <option key={s} value={s}>{s}</option>
-                                                ))}
-                                            </select>
-                                            <button
-                                                className="btn btn-primary"
-                                                onClick={() => doEquipFromSlot(Number(slotNum))}
-                                                disabled={loading || slotsLoading || !equipTargetByInvSlot[Number(slotNum)] || !slot.code}
-                                                title="Equip this item"
-                                            >Equip</button>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     </section>

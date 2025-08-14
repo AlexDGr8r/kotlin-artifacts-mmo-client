@@ -102,3 +102,23 @@ export async function getInventory(name: string): Promise<Record<number, Invento
     if (!res.ok) throw new Error(`Failed to fetch inventory: ${res.status}`);
     return res.json();
 }
+
+// --- Items ---
+export type Item = {
+    name: string;
+    code: string;
+    level: number;
+    type?: string;
+    subtype?: string;
+    description?: string;
+    tradeable?: boolean;
+};
+
+export async function getItem(code: string): Promise<Item> {
+    const raw = code ?? '';
+    const normalized = raw.trim();
+    if (!normalized) throw new Error('Code is required');
+    const res = await fetch(`/items/${encodeURIComponent(normalized)}`);
+    if (!res.ok) throw new Error(`Failed to fetch item ${normalized}: ${res.status}`);
+    return res.json();
+}

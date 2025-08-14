@@ -13,6 +13,7 @@ class ItemController(
 ) {
 
     @GetMapping("/{code}")
-    fun fetchAndStore(@PathVariable code: String) = itemService.fetchAndStoreSchema(code)
+    fun fetchAndStore(@PathVariable code: String) =
+        itemService.get(code) ?: throw NoSuchElementException("Item not found")
 
 }
