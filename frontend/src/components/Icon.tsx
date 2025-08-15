@@ -14,7 +14,8 @@ export type IconName =
     | 'box'
     | 'x-circle'
     | 'user'
-    | 'controls';
+    | 'controls'
+    | 'search';
 
 export default function Icon({name, size = 18, className, title}: {
     name: IconName;
@@ -135,10 +136,17 @@ export default function Icon({name, size = 18, className, title}: {
         case 'controls':
             return (
                 <svg {...common} aria-label={title}>
-                    <path stroke="currentColor" stroke-linecap="round" stroke-width="2"
+                    <path stroke="currentColor" strokeLinecap="round" strokeWidth="2"
                           d="M20 6H10m0 0a2 2 0 1 0-4 0m4 0a2 2 0 1 1-4 0m0 0H4m16 6h-2m0 0a2 2 0 1 0-4 0m4 0a2 2 0 1 1-4 0m0 0H4m16 6H10m0 0a2 2 0 1 0-4 0m4 0a2 2 0 1 1-4 0m0 0H4"/>
                 </svg>
-            )
+            );
+        case 'search':
+            return (
+                <svg {...common} aria-label={title}>
+                    <circle cx="11" cy="11" r="7" />
+                    <path d="M21 21l-4.3-4.3" />
+                </svg>
+            );
         default:
             return null;
     }

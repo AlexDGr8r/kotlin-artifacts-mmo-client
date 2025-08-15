@@ -1,7 +1,7 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import CharacterDetails from './components/CharacterDetails';
 import EquipmentPanel from './components/EquipmentPanel';
-import InventoryPanel from './components/InventoryPanel';
+import {InventoryPanel} from './components/InventoryPanel';
 import {
     Destination,
     equip,
@@ -19,6 +19,7 @@ import {
     unequip
 } from './api';
 import Icon from './components/Icon';
+import ItemSearchModal from './components/ItemSearchModal';
 
 // Simple relative time formatter: returns phrases like "in 30 seconds" or "30 seconds ago"
 function formatRelativeTime(target: Date | string | number, nowInput?: Date): string {
@@ -55,8 +56,18 @@ function formatRelativeTime(target: Date | string | number, nowInput?: Date): st
 }
 
 
+function ItemSearchTrigger({ name, onOpen }: { name: string, onOpen: () => void }) {
+    return (
+        <div className="row wrap fill">
+            <button className="btn" onClick={onOpen} disabled={!name}><Icon name="search"/>Search Items</button>
+        </div>
+    );
+}
+
 export default function App() {
     const [name, setName] = useState<string>('');
+    const [itemSearchOpen, setItemSearchOpen] = useState(false);
+    const [itemSearchInitial, setItemSearchInitial] = useState<any | null>(null);
     const [character, setCharacter] = useState<any | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -360,8 +371,7 @@ export default function App() {
                                     onChange={(e) => setName(e.target.value)}
                                     disabled={namesLoading}
                                 >
-                                    <option
-                                        value="">{namesLoading ? 'Loading characters...' : 'Select a character'}</option>
+                                    <option value="">{namesLoading ? 'Loading characters...' : 'Select a character'}</option>
                                     {charNames.map((n) => (
                                         <option key={n} value={n}>{n}</option>
                                     ))}
@@ -383,6 +393,8 @@ export default function App() {
                                     name="refresh"/>Refresh
                                 </button>
                             </div>
+
+                            <ItemSearchTrigger name={name} onOpen={() => { setItemSearchInitial(null); setItemSearchOpen(true); }} />
 
                             <div className="row wrap fill">
                                 <button className="btn" onClick={doRest} disabled={!isReady}><Icon name="moon"/>Rest
@@ -477,6 +489,10 @@ export default function App() {
                         equipTargetByInvSlot={equipTargetByInvSlot}
                         setEquipTargetByInvSlot={setEquipTargetByInvSlot}
                         onEquipFromSlot={doEquipFromSlot}
+                        onFindRecipes={(code) => {
+                            setItemSearchInitial({ page: 1, pageSize: 20, craftMaterial: code });
+                            setItemSearchOpen(true);
+                        }}
                     />
                 </div>
             </main>
@@ -484,6 +500,16 @@ export default function App() {
             <footer className="footer">
                 Dev server proxies API calls to http://localhost:8080. Run backend first.
             </footer>
+
+            {itemSearchOpen && (
+                <ItemSearchModal
+                    isOpen={itemSearchOpen}
+                    onClose={() => setItemSearchOpen(false)}
+                    characterName={name}
+                    initialQuery={itemSearchInitial || undefined}
+                    autoSearch={!!itemSearchInitial}
+                />
+            )}
         </div>
     );
 }

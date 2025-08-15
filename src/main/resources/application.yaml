@@ -13,3 +13,8 @@ spring:
   sql:
     init:
       mode: always
+
+logging:
+  level:
+    org.springframework.web: DEBUG
+    org.springframework.web.filter.CommonsRequestLoggingFilter: DEBUG

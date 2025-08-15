@@ -122,3 +122,61 @@ export async function getItem(code: string): Promise<Item> {
     if (!res.ok) throw new Error(`Failed to fetch item ${normalized}: ${res.status}`);
     return res.json();
 }
+
+// --- Items search & crafting ---
+export type FindItemsSchema = {
+    craftMaterial?: string | null;
+    craftSkill?: string | null;
+    maxLevel?: number | null;
+    minLevel?: number | null;
+    itemName?: string | null;
+    page?: number | null;
+    pageSize?: number | null;
+    type?: string | null;
+};
+
+export type PagedItems = {
+    data: Item[];
+    total?: number | null;
+    page?: number | null;
+    size?: number | null; // note: backend uses "size" field
+    pages?: number | null;
+};
+
+export async function findItems(input: FindItemsSchema): Promise<PagedItems> {
+    const res = await fetch(`/items/find`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input ?? {}),
+    });
+    if (!res.ok) throw new Error(`Failed to search items: ${res.status}`);
+    const body = await res.json();
+    if (Array.isArray(body)) {
+        // Backend returned a bare list; normalize to paged shape expected by UI
+        const data: Item[] = body;
+        return { data, total: data.length, page: 1, size: data.length, pages: 1 };
+    }
+    return body as PagedItems;
+}
+
+export type CraftStatus = { canCraft: boolean; message?: string | null };
+
+export async function getCraftStatus(name: string, itemCode: string): Promise<CraftStatus> {
+    const code = (itemCode || '').trim();
+    if (!name || !code) throw new Error('Character name and item code are required');
+    const res = await fetch(`/character/${encodeURIComponent(name)}/craft/status/${encodeURIComponent(code)}`);
+    if (!res.ok) throw new Error(`Failed to check craft status: ${res.status}`);
+    return res.json();
+}
+
+export async function craftItem(name: string, code: string, quantity: number = 1): Promise<any> {
+    const c = (code || '').trim();
+    if (!name || !c) throw new Error('Character name and code are required');
+    const res = await fetch(`/character/${encodeURIComponent(name)}/craft`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: c, quantity }),
+    });
+    if (!res.ok) throw new Error(`Failed to craft: ${res.status}`);
+    return res.json();
+}

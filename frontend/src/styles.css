@@ -505,3 +505,30 @@ label.input-label {
     border-color: rgba(6, 214, 160, 0.5);
     color: var(--success);
 }
+
+/* Modal styles */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: grid;
+    place-items: center;
+    z-index: 1000;
+}
+.modal {
+    width: min(1100px, 96vw);
+    max-height: 90vh;
+    overflow: auto;
+    background: linear-gradient(180deg, var(--panel), var(--panel-2));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 20px 60px var(--shadow);
+}
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+}
+.modal-body { padding: 12px 14px; }
