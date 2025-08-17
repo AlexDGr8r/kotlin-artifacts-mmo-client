@@ -1,6 +1,7 @@
 package com.artifacts.client.domain
 
 import com.artifacts.client.openapi.models.CraftSkill
+import com.artifacts.client.openapi.models.DestinationSchema
 import com.artifacts.client.openapi.models.Skill
 import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.Version
@@ -116,4 +117,7 @@ data class CharacterEntity(
             else -> 1
         }
     }
+
+    fun getLocation() = DestinationSchema(x, y)
+
 }

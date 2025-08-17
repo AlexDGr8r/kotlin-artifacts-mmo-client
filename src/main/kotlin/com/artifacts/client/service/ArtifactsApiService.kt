@@ -93,6 +93,30 @@ class ArtifactsApiService(
         .retrieve()
         .logAndReturnBody<DataPageItemSchema>()
 
+    fun getAllMaps(
+        contentCode: String? = null,
+        contentType: MapContentType? = null,
+        page: Int = 1,
+        pageSize: Int = 50
+    ) =
+        artifactsApiRestClient
+            .get()
+            .uri { uriBuilder ->
+                uriBuilder.path("/maps")
+                contentCode?.let { uriBuilder.queryParam("content_code", it) }
+                contentType?.let { uriBuilder.queryParam("content_type", it.value) }
+                uriBuilder.queryParam("page", page)
+                uriBuilder.queryParam("page_size", pageSize)
+                uriBuilder.build()
+            }
+            .retrieve()
+            .logAndReturnBody<DataPageMapSchema>()
+
+    fun getMap(loc: DestinationSchema) = artifactsApiRestClient.get()
+        .uri("/maps/{x}/{y}", loc.x, loc.y)
+        .retrieve()
+        .logAndReturnBody<MapResponseSchema>()
+
     private inline fun <reified T : Any> RestClient.ResponseSpec.logAndReturnBody(): T {
         val response = toEntity<T>()
         log.info { "Response status code: ${response.statusCode}" }

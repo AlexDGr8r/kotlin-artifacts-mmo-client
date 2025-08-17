@@ -1,0 +1,13 @@
+@name = AlexTheGr8r
+
+###
+GET http://localhost:8080/routine/{{name}}
+
+###
+PUT http://localhost:8080/routine/{{name}}/gather
+Content-Type: application/json
+
+{
+  "gatherResource": "COPPER",
+  "duration": "10m"
+}

@@ -43,8 +43,6 @@ class ItemService(
 
     fun getAll(vararg codes: String) = codes.mapNotNull { get(it) }
 
-
-
     fun findItemsInInventory(item: String, inv: CharacterInventory) =
         inv.inventory.values.filter { it.code == item }
 
