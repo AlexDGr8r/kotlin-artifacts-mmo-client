@@ -114,6 +114,30 @@ export type Item = {
     tradeable?: boolean;
 };
 
+// --- Routines ---
+export async function getRoutine(name: string): Promise<any> {
+    const res = await fetch(`/routine/${encodeURIComponent(name)}`);
+    if (res.status === 404) {
+        // No routine found
+        return null;
+    }
+    if (!res.ok) throw new Error(`Failed to fetch routine: ${res.status}`);
+    return res.json();
+}
+
+export type GatherResource = 'COPPER' | 'GOLD' | 'ASH_TREE';
+
+export async function startGatherRoutine(name: string, input: { gatherResource: GatherResource; duration?: string | null }): Promise<void> {
+    const body: any = { gatherResource: input.gatherResource };
+    if (input.duration) body.duration = input.duration;
+    const res = await fetch(`/routine/${encodeURIComponent(name)}/gather`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error(`Failed to start gather routine: ${res.status}`);
+}
+
 export async function getItem(code: string): Promise<Item> {
     const raw = code ?? '';
     const normalized = raw.trim();

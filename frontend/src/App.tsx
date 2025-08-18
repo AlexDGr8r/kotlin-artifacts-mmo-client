@@ -20,6 +20,7 @@ import {
 } from './api';
 import Icon from './components/Icon';
 import ItemSearchModal from './components/ItemSearchModal';
+import RoutinesPage from './pages/Routines';
 
 // Simple relative time formatter: returns phrases like "in 30 seconds" or "30 seconds ago"
 function formatRelativeTime(target: Date | string | number, nowInput?: Date): string {
@@ -65,6 +66,14 @@ function ItemSearchTrigger({ name, onOpen }: { name: string, onOpen: () => void 
 }
 
 export default function App() {
+    // Simple hash-based routing: #/ for main, #/routines for routines page
+    const getRoute = () => (location.hash.replace('#', '') === '/routines' ? 'routines' : 'main') as 'main' | 'routines';
+    const [route, setRoute] = useState<'main' | 'routines'>(getRoute());
+    useEffect(() => {
+        const onHashChange = () => setRoute(getRoute());
+        window.addEventListener('hashchange', onHashChange);
+        return () => window.removeEventListener('hashchange', onHashChange);
+    }, []);
     const [name, setName] = useState<string>('');
     const [itemSearchOpen, setItemSearchOpen] = useState(false);
     const [itemSearchInitial, setItemSearchInitial] = useState<any | null>(null);
@@ -292,6 +301,18 @@ export default function App() {
         return () => clearTimeout(id);
     }, [name, headerCooldownDate, load, loading]);
 
+    // Poll the currently loaded character every 10 seconds on the main page
+    useEffect(() => {
+        if (route !== 'main') return;
+        if (!name || !character) return;
+        const id = setInterval(() => {
+            if (!loading) {
+                load().then();
+            }
+        }, 10000);
+        return () => clearInterval(id);
+    }, [route, name, character, loading, load]);
+
     useEffect(() => {
         setCharacter(null);
         setCooldownText('');
@@ -331,6 +352,14 @@ export default function App() {
                     <div className="brand">
                         <div className="brand-badge"/>
                         <div className="brand-title">Artifacts MMO Client</div>
+                        <nav className="nav">
+                            <button className={"tab " + (route === 'main' ? 'active' : '')} onClick={() => { location.hash = '/'; }}>
+                                Main
+                            </button>
+                            <button className={"tab " + (route === 'routines' ? 'active' : '')} onClick={() => { location.hash = '/routines'; }}>
+                                Routines
+                            </button>
+                        </nav>
                     </div>
                     <div style={{marginLeft: 'auto'}}>
                         {headerCooldownRelative ? (
@@ -349,152 +378,156 @@ export default function App() {
             </header>
 
             <main className="page">
-                <div className="grid">
-                    {/* Controls panel */}
-                    <section className="panel">
-                        <div className="panel-inner stack">
-                            <div className="row wrap">
-                                <h3 className="panel-title"><Icon name={"controls"}/>Controls</h3>
-                                {loading &&
-                                    <span className="row" style={{gap: 6}}><span className="loader"/> Loading...</span>}
+                {route === 'routines' ? (
+                    <RoutinesPage />
+                ) : (
+                    <div className="grid">
+                        {/* Controls panel */}
+                        <section className="panel">
+                            <div className="panel-inner stack">
+                                <div className="row wrap">
+                                    <h3 className="panel-title"><Icon name={"controls"}/>Controls</h3>
+                                    {loading &&
+                                        <span className="row" style={{gap: 6}}><span className="loader"/> Loading...</span>}
+                                </div>
+
+                                {error && <div className="helper" style={{color: '#ef476f'}}>Error: {error}</div>}
+                                {!name && <div className="helper">Select a character to begin.</div>}
+
+                                <div className="stack">
+                                    <label className="input-label" htmlFor="charName">Character</label>
+                                    <select
+                                        id="charName"
+                                        className="input"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        disabled={namesLoading}
+                                    >
+                                        <option value="">{namesLoading ? 'Loading characters...' : 'Select a character'}</option>
+                                        {charNames.map((n) => (
+                                            <option key={n} value={n}>{n}</option>
+                                        ))}
+                                    </select>
+                                    {namesError &&
+                                        <div className="helper" style={{color: '#ef476f'}}>Failed to load character
+                                            list: {namesError}</div>}
+                                    {!namesLoading && charNames.length === 0 && !namesError && (
+                                        <div className="helper">No characters found. Create one in the game, then click
+                                            Refresh to try again.</div>
+                                    )}
+                                </div>
+
+                                <div className="row wrap fill">
+                                    <button className="btn btn-accent" onClick={load} disabled={!isReady}><Icon
+                                        name="download"/>Load
+                                    </button>
+                                    <button className="btn btn-primary" onClick={doRefresh} disabled={!isReady}><Icon
+                                        name="refresh"/>Refresh
+                                    </button>
+                                </div>
+
+                                <ItemSearchTrigger name={name} onOpen={() => { setItemSearchInitial(null); setItemSearchOpen(true); }} />
+
+                                <div className="row wrap fill">
+                                    <button className="btn" onClick={doRest} disabled={!isReady}><Icon name="moon"/>Rest
+                                    </button>
+                                    <button className="btn btn-danger" onClick={doFight} disabled={!isReady}><Icon
+                                        name="sword"/>Fight
+                                    </button>
+                                    <button className="btn" onClick={doGather} disabled={!isReady}><Icon name="leaf"/>Gather
+                                    </button>
+                                </div>
+
+                                <div className="stack">
+                                    <label className="input-label">With coordinates</label>
+                                    <div className="row wrap">
+                                        <input
+                                            className="number-input"
+                                            type="number"
+                                            value={dest.x}
+                                            onChange={(e) => setDest({...dest, x: Number(e.target.value)})}
+                                            placeholder="X"
+                                        />
+                                        <input
+                                            className="number-input"
+                                            type="number"
+                                            value={dest.y}
+                                            onChange={(e) => setDest({...dest, y: Number(e.target.value)})}
+                                            placeholder="Y"
+                                        />
+                                    </div>
+                                    <div className="row wrap fill">
+                                        <button className="btn" onClick={doMove} disabled={!isReady}><Icon
+                                            name="arrow-right"/>Move
+                                        </button>
+                                        <button className="btn" onClick={doGatherAt} disabled={!isReady}><Icon name="leaf"/>Gather
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
+                        </section>
 
-                            {error && <div className="helper" style={{color: '#ef476f'}}>Error: {error}</div>}
-                            {!name && <div className="helper">Select a character to begin.</div>}
-
-                            <div className="stack">
-                                <label className="input-label" htmlFor="charName">Character</label>
-                                <select
-                                    id="charName"
-                                    className="input"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    disabled={namesLoading}
-                                >
-                                    <option value="">{namesLoading ? 'Loading characters...' : 'Select a character'}</option>
-                                    {charNames.map((n) => (
-                                        <option key={n} value={n}>{n}</option>
-                                    ))}
-                                </select>
-                                {namesError &&
-                                    <div className="helper" style={{color: '#ef476f'}}>Failed to load character
-                                        list: {namesError}</div>}
-                                {!namesLoading && charNames.length === 0 && !namesError && (
-                                    <div className="helper">No characters found. Create one in the game, then click
-                                        Refresh to try again.</div>
+                        {/* Data panel */}
+                        <section className="card">
+                            <div className="card-header">
+                                <h3 className="card-title"><Icon name="user"/>Character</h3>
+                                {character && (
+                                    <div className="row wrap" style={{gap: 8}}>
+                                        <span className="badge"><Icon
+                                            name="map-pin"/>{character.x ?? '-'},{character.y ?? '-'}</span>
+                                    </div>
                                 )}
                             </div>
-
-                            <div className="row wrap fill">
-                                <button className="btn btn-accent" onClick={load} disabled={!isReady}><Icon
-                                    name="download"/>Load
-                                </button>
-                                <button className="btn btn-primary" onClick={doRefresh} disabled={!isReady}><Icon
-                                    name="refresh"/>Refresh
-                                </button>
+                            <div className="card-body">
+                                {character ? (
+                                    <CharacterDetails data={character}/>
+                                ) : (
+                                    <div className="helper">No character loaded.</div>
+                                )}
                             </div>
+                        </section>
 
-                            <ItemSearchTrigger name={name} onOpen={() => { setItemSearchInitial(null); setItemSearchOpen(true); }} />
+                        {/* Equipment panel */}
+                        {character && (
+                            <EquipmentPanel
+                                character={character}
+                                name={name}
+                                disabled={loading}
+                                onUnequip={async (apiSlot) => {
+                                    if (!name) return;
+                                    setLoading(true);
+                                    setError(null);
+                                    try {
+                                        await unequip(name, {slot: apiSlot});
+                                        await load();
+                                    } catch (err: any) {
+                                        setError(err?.message || String(err));
+                                    } finally {
+                                        setLoading(false);
+                                    }
+                                }}
+                            />
+                        )}
 
-                            <div className="row wrap fill">
-                                <button className="btn" onClick={doRest} disabled={!isReady}><Icon name="moon"/>Rest
-                                </button>
-                                <button className="btn btn-danger" onClick={doFight} disabled={!isReady}><Icon
-                                    name="sword"/>Fight
-                                </button>
-                                <button className="btn" onClick={doGather} disabled={!isReady}><Icon name="leaf"/>Gather
-                                </button>
-                            </div>
-
-                            <div className="stack">
-                                <label className="input-label">With coordinates</label>
-                                <div className="row wrap">
-                                    <input
-                                        className="number-input"
-                                        type="number"
-                                        value={dest.x}
-                                        onChange={(e) => setDest({...dest, x: Number(e.target.value)})}
-                                        placeholder="X"
-                                    />
-                                    <input
-                                        className="number-input"
-                                        type="number"
-                                        value={dest.y}
-                                        onChange={(e) => setDest({...dest, y: Number(e.target.value)})}
-                                        placeholder="Y"
-                                    />
-                                </div>
-                                <div className="row wrap fill">
-                                    <button className="btn" onClick={doMove} disabled={!isReady}><Icon
-                                        name="arrow-right"/>Move
-                                    </button>
-                                    <button className="btn" onClick={doGatherAt} disabled={!isReady}><Icon name="leaf"/>Gather
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* Data panel */}
-                    <section className="card">
-                        <div className="card-header">
-                            <h3 className="card-title"><Icon name="user"/>Character</h3>
-                            {character && (
-                                <div className="row wrap" style={{gap: 8}}>
-                                    <span className="badge"><Icon
-                                        name="map-pin"/>{character.x ?? '-'},{character.y ?? '-'}</span>
-                                </div>
-                            )}
-                        </div>
-                        <div className="card-body">
-                            {character ? (
-                                <CharacterDetails data={character}/>
-                            ) : (
-                                <div className="helper">No character loaded.</div>
-                            )}
-                        </div>
-                    </section>
-
-                    {/* Equipment panel */}
-                    {character && (
-                        <EquipmentPanel
-                            character={character}
-                            name={name}
-                            disabled={loading}
-                            onUnequip={async (apiSlot) => {
-                                if (!name) return;
-                                setLoading(true);
-                                setError(null);
-                                try {
-                                    await unequip(name, {slot: apiSlot});
-                                    await load();
-                                } catch (err: any) {
-                                    setError(err?.message || String(err));
-                                } finally {
-                                    setLoading(false);
-                                }
+                        {/* Inventory panel */}
+                        <InventoryPanel
+                            inventory={inventory}
+                            loading={inventoryLoading}
+                            error={inventoryError}
+                            onReload={loadInventory}
+                            isReady={isReady}
+                            slots={slots}
+                            slotsLoading={slotsLoading}
+                            equipTargetByInvSlot={equipTargetByInvSlot}
+                            setEquipTargetByInvSlot={setEquipTargetByInvSlot}
+                            onEquipFromSlot={doEquipFromSlot}
+                            onFindRecipes={(code) => {
+                                setItemSearchInitial({ page: 1, pageSize: 20, craftMaterial: code });
+                                setItemSearchOpen(true);
                             }}
                         />
-                    )}
-
-                    {/* Inventory panel */}
-                    <InventoryPanel
-                        inventory={inventory}
-                        loading={inventoryLoading}
-                        error={inventoryError}
-                        onReload={loadInventory}
-                        isReady={isReady}
-                        slots={slots}
-                        slotsLoading={slotsLoading}
-                        equipTargetByInvSlot={equipTargetByInvSlot}
-                        setEquipTargetByInvSlot={setEquipTargetByInvSlot}
-                        onEquipFromSlot={doEquipFromSlot}
-                        onFindRecipes={(code) => {
-                            setItemSearchInitial({ page: 1, pageSize: 20, craftMaterial: code });
-                            setItemSearchOpen(true);
-                        }}
-                    />
-                </div>
+                    </div>
+                )}
             </main>
 
             <footer className="footer">
