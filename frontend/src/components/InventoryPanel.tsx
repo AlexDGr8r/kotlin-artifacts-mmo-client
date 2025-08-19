@@ -86,21 +86,26 @@ export function InventoryPanel({
                                             <option key={s} value={s}>{s}</option>
                                         ))}
                                     </select>
-                                    <button
-                                        className="btn btn-primary"
-                                        onClick={() => onEquipFromSlot(Number(slotNum))}
-                                        disabled={slotsLoading || !equipTargetByInvSlot[Number(slotNum)] || !slot.code}
-                                        title="Equip this item"
-                                    ><Icon name="shield"/>Equip
-                                    </button>
-                                    <button
-                                        className="btn"
-                                        onClick={() => slot.code && onFindRecipes(slot.code)}
-                                        disabled={!slot.code}
-                                        title="Find crafts that use this as material"
-                                    >
-                                        <Icon name="search"/>Find recipes
-                                    </button>
+                                    <div className="row fill">
+                                        <button
+                                            className="btn btn-primary"
+                                            onClick={() => onEquipFromSlot(Number(slotNum))}
+                                            disabled={slotsLoading || !equipTargetByInvSlot[Number(slotNum)] || !slot.code}
+                                            title="Equip this item"
+                                        >
+                                            <Icon name="shield"/>Equip
+                                        </button>
+                                    </div>
+                                    <div className="row fill">
+                                        <button
+                                            className="btn"
+                                            onClick={() => slot.code && onFindRecipes(slot.code)}
+                                            disabled={!slot.code}
+                                            title="Find crafts that use this as material"
+                                        >
+                                            <Icon name="search"/>Recipes
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         );

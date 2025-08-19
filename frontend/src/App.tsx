@@ -57,7 +57,7 @@ function formatRelativeTime(target: Date | string | number, nowInput?: Date): st
 }
 
 
-function ItemSearchTrigger({ name, onOpen }: { name: string, onOpen: () => void }) {
+function ItemSearchTrigger({name, onOpen}: { name: string, onOpen: () => void }) {
     return (
         <div className="row wrap fill">
             <button className="btn" onClick={onOpen} disabled={!name}><Icon name="search"/>Search Items</button>
@@ -276,7 +276,7 @@ export default function App() {
         }
     }, [name, dest, load])
 
-    // Auto-load when cooldown expires with a 1s buffer
+    // Auto-load when cooldown expires with a 1 s buffer
     const lastAutoLoadAtRef = useRef<number | null>(null);
     useEffect(() => {
         if (!name) return;
@@ -284,7 +284,7 @@ export default function App() {
         if (!t || !Number.isFinite(t)) return;
         const mark = t; // use timestamp as a unique marker
         const now = Date.now();
-        const delay = t - now + 2000; // 2s buffer after cooldown
+        const delay = t - now + 2000; // 2 s buffer after cooldown
         if (delay <= 0) {
             if (lastAutoLoadAtRef.current !== mark && !loading) {
                 lastAutoLoadAtRef.current = mark;
@@ -353,10 +353,14 @@ export default function App() {
                         <div className="brand-badge"/>
                         <div className="brand-title">Artifacts MMO Client</div>
                         <nav className="nav">
-                            <button className={"tab " + (route === 'main' ? 'active' : '')} onClick={() => { location.hash = '/'; }}>
+                            <button className={"tab " + (route === 'main' ? 'active' : '')} onClick={() => {
+                                location.hash = '/';
+                            }}>
                                 Main
                             </button>
-                            <button className={"tab " + (route === 'routines' ? 'active' : '')} onClick={() => { location.hash = '/routines'; }}>
+                            <button className={"tab " + (route === 'routines' ? 'active' : '')} onClick={() => {
+                                location.hash = '/routines';
+                            }}>
                                 Routines
                             </button>
                         </nav>
@@ -379,7 +383,7 @@ export default function App() {
 
             <main className="page">
                 {route === 'routines' ? (
-                    <RoutinesPage />
+                    <RoutinesPage/>
                 ) : (
                     <div className="grid">
                         {/* Controls panel */}
@@ -388,7 +392,8 @@ export default function App() {
                                 <div className="row wrap">
                                     <h3 className="panel-title"><Icon name={"controls"}/>Controls</h3>
                                     {loading &&
-                                        <span className="row" style={{gap: 6}}><span className="loader"/> Loading...</span>}
+                                        <span className="row" style={{gap: 6}}><span
+                                            className="loader"/> Loading...</span>}
                                 </div>
 
                                 {error && <div className="helper" style={{color: '#ef476f'}}>Error: {error}</div>}
@@ -403,7 +408,8 @@ export default function App() {
                                         onChange={(e) => setName(e.target.value)}
                                         disabled={namesLoading}
                                     >
-                                        <option value="">{namesLoading ? 'Loading characters...' : 'Select a character'}</option>
+                                        <option
+                                            value="">{namesLoading ? 'Loading characters...' : 'Select a character'}</option>
                                         {charNames.map((n) => (
                                             <option key={n} value={n}>{n}</option>
                                         ))}
@@ -426,7 +432,10 @@ export default function App() {
                                     </button>
                                 </div>
 
-                                <ItemSearchTrigger name={name} onOpen={() => { setItemSearchInitial(null); setItemSearchOpen(true); }} />
+                                <ItemSearchTrigger name={name} onOpen={() => {
+                                    setItemSearchInitial(null);
+                                    setItemSearchOpen(true);
+                                }}/>
 
                                 <div className="row wrap fill">
                                     <button className="btn" onClick={doRest} disabled={!isReady}><Icon name="moon"/>Rest
@@ -460,7 +469,8 @@ export default function App() {
                                         <button className="btn" onClick={doMove} disabled={!isReady}><Icon
                                             name="arrow-right"/>Move
                                         </button>
-                                        <button className="btn" onClick={doGatherAt} disabled={!isReady}><Icon name="leaf"/>Gather
+                                        <button className="btn" onClick={doGatherAt} disabled={!isReady}><Icon
+                                            name="leaf"/>Gather
                                         </button>
                                     </div>
                                 </div>
@@ -522,7 +532,7 @@ export default function App() {
                             setEquipTargetByInvSlot={setEquipTargetByInvSlot}
                             onEquipFromSlot={doEquipFromSlot}
                             onFindRecipes={(code) => {
-                                setItemSearchInitial({ page: 1, pageSize: 20, craftMaterial: code });
+                                setItemSearchInitial({page: 1, pageSize: 20, craftMaterial: code});
                                 setItemSearchOpen(true);
                             }}
                         />

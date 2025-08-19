@@ -143,8 +143,8 @@ export default function Icon({name, size = 18, className, title}: {
         case 'search':
             return (
                 <svg {...common} aria-label={title}>
-                    <circle cx="11" cy="11" r="7" />
-                    <path d="M21 21l-4.3-4.3" />
+                    <circle cx="11" cy="11" r="7"/>
+                    <path d="M21 21l-4.3-4.3"/>
                 </svg>
             );
         default:

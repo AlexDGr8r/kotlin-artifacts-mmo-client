@@ -4,6 +4,7 @@ import com.artifacts.client.domain.CharacterInventory
 import com.artifacts.client.domain.ItemEntity
 import com.artifacts.client.mappers.ItemMapper.toEntity
 import com.artifacts.client.mappers.ItemMapper.toSchema
+import com.artifacts.client.openapi.models.DataPageItemSchema
 import com.artifacts.client.openapi.models.ItemSchema
 import com.artifacts.client.repository.ItemRepository
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -49,11 +50,11 @@ class ItemService(
     fun quantityInInventory(item: String, inv: CharacterInventory) =
         findItemsInInventory(item, inv).sumOf { it.quantity }
 
-    fun findItems(schema: ArtifactsApiService.FindItemsSchema): List<ItemSchema> {
+    fun findItems(schema: ArtifactsApiService.FindItemsSchema): DataPageItemSchema {
         val items = artifactsApi.findItems(schema)
         // Store them since we have them
         items.data.forEach { item -> store(item) }
-        return items.data
+        return items
     }
 
 }

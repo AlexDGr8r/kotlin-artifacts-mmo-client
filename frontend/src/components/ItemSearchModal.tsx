@@ -2,7 +2,7 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import ItemImage from './ItemImage';
 import Icon from './Icon';
 import {craftItem, findItems, FindItemsSchema, getCraftStatus, Item, PagedItems} from '../api';
-import JsonView from './JsonView';
+import JsonModal from './JsonModal';
 
 const CRAFT_SKILLS = ['weaponcrafting', 'gearcrafting', 'jewelrycrafting', 'cooking', 'woodcutting', 'mining', 'alchemy'] as const;
 const ITEM_TYPES = ['utility', 'body_armor', 'weapon', 'resource', 'leg_armor', 'helmet', 'boots', 'shield', 'amulet', 'ring', 'artifact', 'currency', 'consumable', 'rune', 'bag'] as const;
@@ -264,20 +264,13 @@ export default function ItemSearchModal({
                 </div>
             </div>
 
-            {jsonItem && (
-                <div className="modal-overlay" onClick={() => setJsonItem(null)}>
-                    <div className="modal" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3 className="card-title"><Icon name="box"/> Item JSON - {jsonItem.name}</h3>
-                            <button className="btn" onClick={() => setJsonItem(null)}><Icon name="x-circle"/>Close
-                            </button>
-                        </div>
-                        <div className="modal-body">
-                            <JsonView data={jsonItem}/>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <JsonModal
+                isOpen={!!jsonItem}
+                onClose={() => setJsonItem(null)}
+                title={`Item JSON - ${jsonItem?.name ?? ''}`}
+                data={jsonItem}
+                iconName="box"
+            />
         </div>
     );
 }
@@ -309,13 +302,13 @@ function ItemCard({item, characterName, onCheck, onCraft, status, onShowJson}: I
                 <ItemImage code={item.code}/>
                 <div className="item-code" title={item.code}>{item.name}</div>
             </div>
-            <div className="inv-slot-actions">
+            <div className="stack">
                 <button className="btn" onClick={() => onCheck(item.code)} disabled={!canCheck || checking}
                         title={canCheck ? 'Check if you can craft this item' : 'Select a character first'}>
                     {checking ? <span className="row" style={{gap: 6}}><span
                         className="loader"/> Checking...</span> : 'Check Craft'}
                 </button>
-                <input className="number-input" type="number" min={1} value={qty}
+                <input className="input" type="number" min={1} value={qty}
                        onChange={(e) => setQty(Math.max(1, Number(e.target.value) || 1))}/>
                 <button className="btn btn-primary" onClick={() => onCraft(item.code, qty)}
                         disabled={!canCraftNow || checking} title={msg || ''}>Craft

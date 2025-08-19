@@ -86,8 +86,9 @@ class ArtifactsApiService(
             schema.minLevel?.let { uriBuilder.queryParam("min_level", it) }
             schema.itemName?.let { uriBuilder.queryParam("name", it) }
             schema.page?.let { uriBuilder.queryParam("page", it) }
-            schema.pageSize?.let { uriBuilder.queryParam("page_size", it) }
+            schema.pageSize?.let { uriBuilder.queryParam("size", it) }
             schema.type?.let { uriBuilder.queryParam("type", it.value) }
+            log.info { "Finding items with URL: ${uriBuilder.toUriString()}" }
             uriBuilder.build()
         }
         .retrieve()

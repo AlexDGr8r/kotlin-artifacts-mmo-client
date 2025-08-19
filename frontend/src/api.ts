@@ -127,12 +127,15 @@ export async function getRoutine(name: string): Promise<any> {
 
 export type GatherResource = 'COPPER' | 'GOLD' | 'ASH_TREE';
 
-export async function startGatherRoutine(name: string, input: { gatherResource: GatherResource; duration?: string | null }): Promise<void> {
-    const body: any = { gatherResource: input.gatherResource };
+export async function startGatherRoutine(name: string, input: {
+    gatherResource: GatherResource;
+    duration?: string | null
+}): Promise<void> {
+    const body: any = {gatherResource: input.gatherResource};
     if (input.duration) body.duration = input.duration;
     const res = await fetch(`/routine/${encodeURIComponent(name)}/gather`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(body),
     });
     if (!res.ok) throw new Error(`Failed to start gather routine: ${res.status}`);
@@ -170,16 +173,11 @@ export type PagedItems = {
 export async function findItems(input: FindItemsSchema): Promise<PagedItems> {
     const res = await fetch(`/items/find`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(input ?? {}),
     });
     if (!res.ok) throw new Error(`Failed to search items: ${res.status}`);
     const body = await res.json();
-    if (Array.isArray(body)) {
-        // Backend returned a bare list; normalize to paged shape expected by UI
-        const data: Item[] = body;
-        return { data, total: data.length, page: 1, size: data.length, pages: 1 };
-    }
     return body as PagedItems;
 }
 
@@ -198,8 +196,8 @@ export async function craftItem(name: string, code: string, quantity: number = 1
     if (!name || !c) throw new Error('Character name and code are required');
     const res = await fetch(`/character/${encodeURIComponent(name)}/craft`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: c, quantity }),
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({code: c, quantity}),
     });
     if (!res.ok) throw new Error(`Failed to craft: ${res.status}`);
     return res.json();

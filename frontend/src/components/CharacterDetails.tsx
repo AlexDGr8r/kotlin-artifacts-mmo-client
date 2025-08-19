@@ -11,7 +11,7 @@ import {
     GiSwordSmithing,
     GiTwoCoins
 } from "react-icons/gi";
-import JsonView from "./JsonView";
+import JsonModal from "./JsonModal";
 
 // Skill icon mapping
 const skillIcons: Record<string, JSX.Element> = {
@@ -139,7 +139,13 @@ export default function CharacterDetails({data}: { data: any }) {
                 </button>
             </div>
 
-            {showRaw && <JsonView data={data}/>}
+            <JsonModal
+                isOpen={showRaw}
+                onClose={() => setShowRaw(false)}
+                title={`Character JSON - ${data?.name ?? ''}`}
+                data={data}
+                iconName="user"
+            />
         </div>
     );
 }

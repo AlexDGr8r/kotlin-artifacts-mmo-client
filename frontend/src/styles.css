@@ -109,8 +109,6 @@ body {
 .nav .tab:disabled { opacity: .7; cursor: not-allowed; }
 
 .page {
-    max-width: 1400px;
-    margin: 0 auto;
     padding: 18px 16px 28px;
 }
 
@@ -142,6 +140,7 @@ body {
     border: 1px solid var(--border);
     border-radius: var(--radius);
     box-shadow: 0 12px 36px var(--shadow);
+    width: 100%;
 }
 
 .panel-inner {
@@ -162,8 +161,11 @@ body {
     align-items: center;
 }
 
+.fill { flex: 1 1 auto; }
+
 /* Make buttons in a row fill available horizontal space evenly */
 .row.fill { align-items: stretch; }
+.row.content { display: contents;}
 .row.fill > .btn { flex: 1 1 160px; min-width: 0; }
 
 .wrap {
@@ -557,3 +559,10 @@ label.input-label {
     border-bottom: 1px solid var(--border);
 }
 .modal-body { padding: 12px 14px; }
+
+
+/* Evenly distribute all direct children inside a row */
+.row.equal { align-items: stretch; }
+.row.equal > * { flex: 1 1 0; min-width: 0; }
+/* Opt-out utility for specific children inside equal rows */
+.row.equal > .no-grow { flex: 0 0 auto; }
